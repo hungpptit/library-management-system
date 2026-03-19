@@ -1,0 +1,5 @@
+{
+  "name": "Modern Library Management System (LMS)",
+  "description": "A modern, light, and airy library management system with reader and admin interfaces, featuring search, borrowing tracking, and inventory management.",
+  "requestFramePermissions": []
+}

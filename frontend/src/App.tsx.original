@@ -1,0 +1,383 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React, { useState, useEffect } from 'react';
+import { UserProfile, Book, Loan } from './types';
+import { 
+  subscribeToBooks, 
+  subscribeToUserLoans, 
+  subscribeToAllLoans, 
+  subscribeToAllUsers,
+  registerUser,
+  loginUser,
+  logoutUser,
+  getCurrentUser,
+  addBook,
+  updateBook,
+  deleteBook,
+  requestBorrow,
+  returnBook,
+  updateUser,
+  deleteUser
+} from './services/localService';
+
+import { Layout } from './components/layout/Layout';
+import { AuthPage } from './components/auth/AuthPage';
+import { UserDashboard } from './components/users/UserDashboard';
+import { UserBooks } from './components/users/UserBooks';
+import { UserProfileView } from './components/users/UserProfileView';
+import { AdminDashboard } from './components/admin/AdminDashboard';
+import { AdminBooks } from './components/admin/AdminBooks';
+import { AdminReaders } from './components/admin/AdminReaders';
+import { AdminLoans } from './components/admin/AdminLoans';
+import { Modal } from './components/ui/Modal';
+import { BookForm } from './components/books/BookForm';
+import { UserForm } from './components/users/UserForm';
+import { Loading } from './components/ui/Loading';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
+
+import { Toaster } from 'react-hot-toast';
+
+export default function App() {
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [activeTab, setActiveTab] = useState('home');
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Data states
+  const [books, setBooks] = useState<Book[]>([]);
+  const [loans, setLoans] = useState<Loan[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Modal states
+  const [isBookModalOpen, setIsBookModalOpen] = useState(false);
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+
+  useEffect(() => {
+    const currentUser = getCurrentUser();
+    setUser(currentUser);
+    if (currentUser?.role === 'admin') {
+      setActiveTab('admin');
+    }
+    setIsAuthReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const unsubBooks = subscribeToBooks(setBooks);
+    const unsubLoans = user.role === 'admin' 
+      ? subscribeToAllLoans(setLoans) 
+      : subscribeToUserLoans(user.uid, setLoans);
+    
+    let unsubUsers: () => void = () => {};
+    if (user.role === 'admin') {
+      unsubUsers = subscribeToAllUsers(setUsers);
+    }
+
+    return () => {
+      unsubBooks();
+      unsubLoans();
+      unsubUsers();
+    };
+  }, [user]);
+
+  const handleLogin = async (data: any) => {
+    setIsLoading(true);
+    try {
+      const loggedInUser = await loginUser(data);
+      setUser(loggedInUser);
+    } catch (error) {
+      console.error(error);
+      alert('Login failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRegister = async (data: any) => {
+    setIsLoading(true);
+    try {
+      const newUser = await registerUser(data);
+      setUser(newUser);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    logoutUser();
+    setUser(null);
+  };
+
+  const handleBorrow = async (book: Book) => {
+    if (!user) return;
+    setIsLoading(true);
+    try {
+      // Simulate network delay for better UX
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      await requestBorrow(book, user);
+      // Success feedback is now handled by the component itself (BookCard or BookDetail)
+    } catch (error) {
+      console.error(error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleReturn = async (loan: Loan) => {
+    setIsLoading(true);
+    try {
+      await returnBook(loan);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleUpdateUser = async (data: Partial<UserProfile>) => {
+    if (!user) return;
+    setIsLoading(true);
+    try {
+      const updated = await updateUser(user.uid, data);
+      setUser(updated);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAdminUpdateUser = async (data: Partial<UserProfile>) => {
+    if (!selectedUser) return;
+    setIsLoading(true);
+    try {
+      await updateUser(selectedUser.uid, data);
+      setIsUserModalOpen(false);
+      setSelectedUser(null);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAdminAddUser = async (data: Partial<UserProfile>) => {
+    setIsLoading(true);
+    try {
+      await registerUser(data);
+      setIsUserModalOpen(false);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async (u: UserProfile) => {
+    if (!window.confirm(`Are you sure you want to delete reader ${u.displayName}?`)) return;
+    setIsLoading(true);
+    try {
+      await deleteUser(u.uid);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAddOrUpdateBook = async (data: Partial<Book>) => {
+    setIsLoading(true);
+    try {
+      if (selectedBook?.id) {
+        await updateBook(selectedBook.id, data);
+      } else {
+        await addBook(data);
+      }
+      setIsBookModalOpen(false);
+      setSelectedBook(null);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteBook = async (book: Book) => {
+    setIsLoading(true);
+    try {
+      await deleteBook(book.id);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (!isAuthReady) return <Loading />;
+
+  if (!user) {
+    return (
+      <ErrorBoundary>
+        <AuthPage
+          onLogin={handleLogin}
+          onRegister={handleRegister}
+          isLoading={isLoading}
+        />
+      </ErrorBoundary>
+    );
+  }
+
+  const filteredBooks = books.filter(book => 
+    book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    book.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    book.isbn.includes(searchQuery)
+  );
+
+  const renderContent = () => {
+    if (user.role === 'admin') {
+      switch (activeTab) {
+        case 'home':
+          return (
+            <UserDashboard
+              books={filteredBooks}
+              onSearch={setSearchQuery}
+              onBorrow={handleBorrow}
+            />
+          );
+        case 'admin':
+          return (
+            <AdminDashboard
+              stats={{
+                totalBooks: books.length,
+                totalReaders: users.length,
+                activeLoans: loans.filter(l => l.status === 'Borrowing').length,
+                overdueLoans: loans.filter(l => l.status === 'Overdue').length,
+              }}
+              recentLoans={loans.slice(0, 5)}
+              popularBooks={books.slice(0, 3)}
+              allBooks={books}
+              allLoans={loans}
+              onAddBook={() => {
+                setSelectedBook(null);
+                setIsBookModalOpen(true);
+              }}
+              onEditBook={(book) => {
+                setSelectedBook(book);
+                setIsBookModalOpen(true);
+              }}
+              onDeleteBook={handleDeleteBook}
+            />
+          );
+        case 'loans':
+          return <AdminLoans loans={loans} onReturn={handleReturn} onScan={() => {}} />;
+        case 'readers':
+          return (
+            <AdminReaders 
+              users={users} 
+              onAddUser={() => {
+                setSelectedUser(null);
+                setIsUserModalOpen(true);
+              }} 
+              onEditUser={(u) => {
+                setSelectedUser(u);
+                setIsUserModalOpen(true);
+              }} 
+              onDeleteUser={handleDeleteUser} 
+            />
+          );
+        case 'profile':
+          return <UserProfileView user={user} onUpdateUser={handleUpdateUser} />;
+        case 'books':
+          return (
+            <AdminBooks
+              books={books}
+              onAddBook={() => {
+                setSelectedBook(null);
+                setIsBookModalOpen(true);
+              }}
+              onEditBook={(book) => {
+                setSelectedBook(book);
+                setIsBookModalOpen(true);
+              }}
+              onDeleteBook={handleDeleteBook}
+            />
+          );
+        default:
+          return null;
+      }
+    }
+
+    switch (activeTab) {
+      case 'home':
+        return (
+          <UserDashboard
+            books={filteredBooks}
+            onSearch={setSearchQuery}
+            onBorrow={handleBorrow}
+          />
+        );
+      case 'my-books':
+        return (
+          <UserBooks
+            activeLoans={loans.filter(l => l.status === 'Borrowing' || l.status === 'Overdue')}
+            loanHistory={loans.filter(l => l.status === 'Returned')}
+            onReturn={handleReturn}
+          />
+        );
+      case 'profile':
+        return <UserProfileView user={user} onUpdateUser={handleUpdateUser} />;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <ErrorBoundary>
+      <Layout
+        userRole={user.role}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onLogout={handleLogout}
+      >
+        {renderContent()}
+        <Toaster />
+
+        <Modal
+          isOpen={isBookModalOpen}
+          onClose={() => setIsBookModalOpen(false)}
+          title={selectedBook ? 'Edit Book' : 'Add New Book'}
+        >
+          <BookForm
+            initialData={selectedBook || {}}
+            onSubmit={handleAddOrUpdateBook}
+            isLoading={isLoading}
+          />
+        </Modal>
+
+        <Modal
+          isOpen={isUserModalOpen}
+          onClose={() => setIsUserModalOpen(false)}
+          title={selectedUser ? 'Edit Reader' : 'Add New Reader'}
+        >
+          <UserForm
+            initialData={selectedUser || {}}
+            onSubmit={selectedUser ? handleAdminUpdateUser : handleAdminAddUser}
+            isLoading={isLoading}
+            isAdmin={true}
+          />
+        </Modal>
+      </Layout>
+    </ErrorBoundary>
+  );
+}
+
