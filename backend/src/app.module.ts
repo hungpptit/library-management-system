@@ -16,7 +16,7 @@ import { LoansModule } from './loans/loans.module';
       password: '123',
       database: 'LMS',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: true,
+      synchronize: false,
       options: {
         encrypt: false, // Set to true if using Azure SQL
       },
