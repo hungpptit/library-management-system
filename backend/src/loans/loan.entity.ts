@@ -1,7 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { Book } from '../books/book.entity';
 import { User } from '../users/user.entity';
-import { FineLog } from '../loans/finelog.entity';
 
 @Entity('Loans')
 export class Loan {
@@ -18,9 +17,9 @@ export class Loan {
   @Column()
   reader_id!: number;
 
-  @ManyToOne(() => User, (user) => user.loans)
+  @ManyToOne('User', 'loans')
   @JoinColumn({ name: 'reader_id' })
-  user!: User;
+  user!: any;
 
   @Column({ type: 'bigint' })
   issue_date!: number;
@@ -34,6 +33,6 @@ export class Loan {
   @Column({ type: 'nvarchar', length: 20, default: 'Borrowing' })
   status!: string; // Borrowing, Returned, Overdue, Lost
 
-  @OneToMany(() => FineLog, (fine) => fine.loan)
-  fineLogs!: FineLog[];
+  @OneToMany('FineLog', 'loan')
+  fineLogs!: any[];
 }

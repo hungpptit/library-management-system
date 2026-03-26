@@ -5,7 +5,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   // Enable CORS for frontend communication
   app.enableCors({
-    origin: 'http://localhost:5173', // Vite default port
+    origin: '*', // Allow all origins for development to avoid port mismatch
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });

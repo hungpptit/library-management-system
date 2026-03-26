@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, ManyToMany, JoinColumn, JoinTable } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, ManyToMany, JoinColumn, JoinTable, DeleteDateColumn } from 'typeorm';
 import { Category } from './category.entity';
 import { Publisher } from './publisher.entity';
 import { Author } from './author.entity';
@@ -51,6 +51,9 @@ export class Book {
 
   @Column({ type: 'bigint' })
   created_at: number;
+
+  @DeleteDateColumn({ name: 'deleted_at', nullable: true })
+  deleted_at: Date;
 
   @ManyToMany(() => Author, (author) => author.books)
   @JoinTable({

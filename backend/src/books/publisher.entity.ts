@@ -15,6 +15,9 @@ export class Publisher {
   @Column({ type: 'nvarchar', length: 20, nullable: true })
   phone: string;
 
+  @Column({ type: 'bigint', nullable: true })
+  created_at: number;
+
   @OneToMany(() => Book, (book) => book.publisher)
   books: Book[];
 }

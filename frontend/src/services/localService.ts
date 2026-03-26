@@ -274,6 +274,7 @@ export const registerUser = async (data: any) => {
     studentId: data.studentId,
     role: 'reader',
     createdAt: Date.now(),
+    password: data.password, // Lưu password để đăng nhập lại được
   };
   
   users.push(newUser);

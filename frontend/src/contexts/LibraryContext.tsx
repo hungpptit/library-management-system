@@ -1,19 +1,16 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Book, Loan, UserProfile } from '../types';
 import { useAuth } from './AuthContext';
 import { 
-  subscribeToBooks, 
   subscribeToUserLoans, 
   subscribeToAllLoans, 
   subscribeToAllUsers,
-  addBook,
-  updateBook,
-  deleteBook,
   requestBorrow,
   returnBook,
   deleteUser,
   registerUser
 } from '../services/localService';
+import { fetchBooksApi, searchBooksApi, addBookApi, updateBookApi, deleteBookApi } from '../services/apiService';
 
 interface LibraryContextType {
   books: Book[];
@@ -25,6 +22,7 @@ interface LibraryContextType {
   addNewBook: (book: Partial<Book>) => Promise<void>;
   updateBookDetails: (book: Partial<Book>) => Promise<void>;
   removeBook: (book: Book) => Promise<void>;
+  searchBooks: (keyword: string) => Promise<void>;
   
   // Loan Actions
   borrowBook: (book: Book) => Promise<void>;
@@ -44,6 +42,32 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Fetch initial books from API
+  const fetchInitialBooks = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const booksData = await fetchBooksApi();
+      setBooks(booksData);
+    } catch (error) {
+      console.error('Failed to fetch books:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Update logic to call API instead of filter locally
+  const searchBooks = async (keyword: string) => {
+    setIsLoading(true);
+    try {
+      const results = await searchBooksApi(keyword);
+      setBooks(results);
+    } catch (error) {
+      console.error('Search failed:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Subscribe to data changes
   useEffect(() => {
     if (!user) {
@@ -53,7 +77,8 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
         return;
     }
 
-    const unsubBooks = subscribeToBooks(setBooks);
+    // Load initial books from DB
+    fetchInitialBooks();
     
     // Subscribe to loans based on role
     const unsubLoans = user.role === 'admin' 
@@ -67,16 +92,16 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     }
 
     return () => {
-      unsubBooks();
       unsubLoans();
       unsubUsers();
     };
-  }, [user]);
+  }, [user, fetchInitialBooks]);
 
   const addNewBook = async (book: Partial<Book>) => {
     setIsLoading(true);
     try {
-      await addBook(book);
+      await addBookApi(book);
+      await fetchInitialBooks(); // Refresh list from DB
     } finally {
       setIsLoading(false);
     }
@@ -86,7 +111,8 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     if (!book.id) throw new Error("Book ID is required for update");
     setIsLoading(true);
     try {
-      await updateBook(book.id, book);
+      await updateBookApi(book.id, book);
+      await fetchInitialBooks(); // Refresh list from DB
     } finally {
       setIsLoading(false);
     }
@@ -95,7 +121,8 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   const removeBook = async (book: Book) => {
     setIsLoading(true);
     try {
-      await deleteBook(book.id);
+      await deleteBookApi(book.id);
+      await fetchInitialBooks(); // Refresh list from DB
     } finally {
       setIsLoading(false);
     }
@@ -148,6 +175,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
       addNewBook,
       updateBookDetails,
       removeBook,
+      searchBooks,
       borrowBook,
       returnBookItem,
       removeUser,

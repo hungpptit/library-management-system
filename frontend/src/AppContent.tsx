@@ -24,7 +24,7 @@ import { useLibraryActions } from './hooks/useLibraryActions';
 export const AppContent = () => {
     // Contexts
     const { user, isAuthReady, login, register, logout, updateProfile } = useAuth();
-    const { books, loans, users, isLoading: isLibraryLoading, removeBook, removeUser } = useLibrary();
+    const { books, loans, users, isLoading: isLibraryLoading, removeBook, removeUser, searchBooks } = useLibrary();
 
     // Custom Hooks
     const bookModal = useModal<Book>();
@@ -36,8 +36,17 @@ export const AppContent = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [isAuthLoading, setIsAuthLoading] = useState(false);
 
-    // Filter Logic using Custom Hook
-    const filteredBooks = useBookSearch(books, searchQuery);
+    // Trigger API search when query changes
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(() => {
+            searchBooks(searchQuery);
+        }, 500);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchQuery, searchBooks]);
+
+    // Initial books are now handled by searchBooks or initial fetch in LibraryContext
+    const filteredBooks = books;
 
     // Initialization
     useEffect(() => {
