@@ -11,17 +11,24 @@ export const useLibraryActions = () => {
       toast.success("Book borrowed successfully");
     } catch (error) {
       console.error(error);
-      toast.error("Failed to borrow book");
+      const message = error instanceof Error ? error.message : "Failed to borrow book";
+      toast.error(message);
+      throw error;
     }
   };
 
   const handleReturn = async (loan: Loan) => {
     try {
-      await returnBookItem(loan);
-      toast.success("Book returned successfully");
+      const returnedLoan = await returnBookItem(loan);
+      if (returnedLoan.fee > 0) {
+        toast.success(`Book returned. Overdue fee (20% cover price): $${returnedLoan.fee.toFixed(2)}`);
+      } else {
+        toast.success("Book returned successfully");
+      }
     } catch (error) {
       console.error(error);
-      toast.error("Failed to return book");
+      const message = error instanceof Error ? error.message : "Failed to return book";
+      toast.error(message);
     }
   };
 

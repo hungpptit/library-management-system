@@ -27,7 +27,11 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ title, user }) => {
             icon={<Search className="w-4 h-4" />}
           />
         </div>
-        <button className="p-3 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-sky-500 transition-all card-shadow">
+        <button
+          aria-label="Open notifications"
+          title="Notifications"
+          className="p-3 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-sky-500 transition-all card-shadow"
+        >
           <Bell className="w-6 h-6" />
         </button>
         <div className="flex items-center gap-3 pl-6 border-l border-slate-200">

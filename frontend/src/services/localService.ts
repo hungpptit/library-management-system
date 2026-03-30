@@ -267,20 +267,48 @@ const INITIAL_LOANS: Loan[] = [
 // Auth Services
 export const registerUser = async (data: any) => {
   const users = getLocalData<UserProfile[]>(USERS_KEY, INITIAL_USERS);
+
+  const email = (data.email || '').trim().toLowerCase();
+  const displayName = (data.displayName || '').trim();
+  const studentId = (data.studentId || '').trim().toUpperCase();
+  const password = (data.password || '').trim();
+
+  if (!email || !displayName || !studentId || !password) {
+    throw new Error('Please complete all registration fields.');
+  }
+
+  if (!/^N22DCCN\d{3}$/.test(studentId)) {
+    throw new Error('Student ID must match format N22DCCNXXX.');
+  }
+
+  const existedUser = users.find((u) => u.email.toLowerCase() === email);
+  if (existedUser) {
+    throw new Error('Email already exists. Please use another email.');
+  }
+
   const newUser: UserProfile = {
     uid: Math.random().toString(36).substring(7),
-    email: data.email,
-    displayName: data.displayName,
-    studentId: data.studentId,
+    email,
+    displayName,
+    studentId,
     role: 'reader',
     createdAt: Date.now(),
-    password: data.password, // Lưu password để đăng nhập lại được
+    password,
   };
   
   users.push(newUser);
   saveLocalData(USERS_KEY, users);
   saveLocalData(CURRENT_USER_KEY, newUser);
   return newUser;
+};
+
+export const isEmailRegistered = (emailInput: string): boolean => {
+  const users = getLocalData<UserProfile[]>(USERS_KEY, INITIAL_USERS);
+  const normalizedEmail = (emailInput || '').trim().toLowerCase();
+  if (!normalizedEmail) {
+    return false;
+  }
+  return users.some((u) => (u.email || '').toLowerCase() === normalizedEmail);
 };
 
 export const loginUser = async (data: any) => {
@@ -365,15 +393,48 @@ export const deleteBook = async (id: string) => {
 export const requestBorrow = async (book: Book, user: UserProfile) => {
   const loans = getLocalData<Loan[]>(LOANS_KEY, INITIAL_LOANS);
   const books = getLocalData<Book[]>(BOOKS_KEY, INITIAL_BOOKS);
+  const normalizedBookId = String(book.id);
+
+  const hasActiveLoanForSameBook = loans.some(
+    (loan) =>
+      loan.readerId === user.uid &&
+      String(loan.bookId) === normalizedBookId &&
+      loan.status !== 'Returned'
+  );
+
+  if (hasActiveLoanForSameBook) {
+    throw new Error('You are already borrowing this book. Please return it before borrowing again.');
+  }
+
+  let bookIndex = books.findIndex((b) => String(b.id) === normalizedBookId);
+  const apiAvailable = Number((book as any).available);
+  const hasApiAvailable = Number.isFinite(apiAvailable);
+  const localAvailable = bookIndex !== -1 ? Number(books[bookIndex].available) : NaN;
+  const currentAvailable = hasApiAvailable
+    ? apiAvailable
+    : (Number.isFinite(localAvailable) ? localAvailable : 0);
+
+  if (currentAvailable <= 0) {
+    throw new Error('This book is out of stock and cannot be borrowed right now.');
+  }
+
+  // Keep a local stock mirror even when books are primarily fetched from API.
+  if (bookIndex === -1) {
+    books.push({ ...book, id: normalizedBookId, available: currentAvailable });
+    bookIndex = books.length - 1;
+  } else {
+    // Refresh stale local availability from current API value before decrementing.
+    books[bookIndex] = { ...books[bookIndex], available: currentAvailable };
+  }
   
   const newLoan: Loan = {
     id: Math.random().toString(36).substring(7),
-    bookId: book.id,
+    bookId: normalizedBookId,
     bookTitle: book.title,
     readerId: user.uid,
     readerName: user.displayName,
     issueDate: Date.now(),
-    dueDate: Date.now() + 14 * 24 * 60 * 60 * 1000,
+    dueDate: Date.now() + 30 * 24 * 60 * 60 * 1000,
     status: 'Borrowing',
     fee: 0,
   };
@@ -381,11 +442,8 @@ export const requestBorrow = async (book: Book, user: UserProfile) => {
   loans.push(newLoan);
   saveLocalData(LOANS_KEY, loans);
   
-  const bookIndex = books.findIndex(b => b.id === book.id);
-  if (bookIndex !== -1) {
-    books[bookIndex].available -= 1;
-    saveLocalData(BOOKS_KEY, books);
-  }
+  books[bookIndex].available -= 1;
+  saveLocalData(BOOKS_KEY, books);
   
   return newLoan;
 };
@@ -393,19 +451,41 @@ export const requestBorrow = async (book: Book, user: UserProfile) => {
 export const returnBook = async (loan: Loan) => {
   const loans = getLocalData<Loan[]>(LOANS_KEY, INITIAL_LOANS);
   const books = getLocalData<Book[]>(BOOKS_KEY, INITIAL_BOOKS);
+  const DAY_IN_MS = 24 * 60 * 60 * 1000;
+  const BORROW_LIMIT_DAYS = 30;
+  const OVERDUE_RATE = 0.2;
   
   const loanIndex = loans.findIndex(l => l.id === loan.id);
-  if (loanIndex !== -1) {
-    loans[loanIndex].status = 'Returned';
-    loans[loanIndex].returnDate = Date.now();
-    saveLocalData(LOANS_KEY, loans);
+  if (loanIndex === -1) {
+    throw new Error('Loan record not found for this return action.');
   }
+
+  if (loans[loanIndex].status === 'Returned') {
+    throw new Error('This book has already been returned.');
+  }
+
+  const now = Date.now();
+  const borrowedDays = Math.ceil((now - Number(loans[loanIndex].issueDate || now)) / DAY_IN_MS);
+  const isOverMonth = borrowedDays > BORROW_LIMIT_DAYS;
+
+  const relatedBook = books.find((b) => String(b.id) === String(loan.bookId));
+  const coverPrice = Number(relatedBook?.price || 0);
+  const overdueFee = isOverMonth ? Number((coverPrice * OVERDUE_RATE).toFixed(2)) : 0;
+
+  loans[loanIndex].status = 'Returned';
+  loans[loanIndex].returnDate = now;
+  loans[loanIndex].fee = overdueFee;
+  saveLocalData(LOANS_KEY, loans);
   
-  const bookIndex = books.findIndex(b => b.id === loan.bookId);
+  const bookIndex = books.findIndex(b => String(b.id) === String(loan.bookId));
   if (bookIndex !== -1) {
-    books[bookIndex].available += 1;
+    const nextAvailable = Number(books[bookIndex].available || 0) + 1;
+    const quantity = Number(books[bookIndex].quantity || 0);
+    books[bookIndex].available = quantity > 0 ? Math.min(quantity, nextAvailable) : nextAvailable;
     saveLocalData(BOOKS_KEY, books);
   }
+
+  return loans[loanIndex];
 };
 
 // Real-time listeners (Simulated with polling or simple callbacks)

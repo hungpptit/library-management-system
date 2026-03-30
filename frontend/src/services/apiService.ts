@@ -17,6 +17,16 @@ export const fetchBooksApi = async (): Promise<Book[]> => {
   }
 };
 
+export const fetchBookByIdApi = async (id: string | number): Promise<Book | null> => {
+  try {
+    const response = await apiInstance.get(`/books/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching book by id from API:', error);
+    return null;
+  }
+};
+
 export const searchBooksApi = async (keyword: string): Promise<Book[]> => {
   try {
     const response = await apiInstance.get('/books/search', {

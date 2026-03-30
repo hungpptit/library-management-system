@@ -13,6 +13,7 @@ interface LayoutProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   onLogout: () => void;
+  onLoginClick: () => void;
 }
 
 export const Layout: React.FC<LayoutProps> = ({
@@ -21,6 +22,7 @@ export const Layout: React.FC<LayoutProps> = ({
   activeTab,
   onTabChange,
   onLogout,
+  onLoginClick,
 }) => {
   return (
     <div className="min-h-screen bg-slate-50 pb-24 md:pb-0 md:pt-20">
@@ -29,6 +31,7 @@ export const Layout: React.FC<LayoutProps> = ({
         activeTab={activeTab}
         onTabChange={onTabChange}
         onLogout={onLogout}
+        onLoginClick={onLoginClick}
       />
       <main className="max-w-7xl mx-auto px-4 py-8 md:px-8">
         <AnimatePresence mode="wait">

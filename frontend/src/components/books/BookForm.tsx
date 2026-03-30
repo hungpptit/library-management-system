@@ -55,7 +55,7 @@ export const BookForm: React.FC<BookFormProps> = ({
       const existingBook = await checkIsbnApi(isbn) as any;
       if (existingBook && existingBook.id !== initialData?.id) {
         setIsDuplicate(true);
-        toast.error('ISBN này đã tồn tại cho một cuốn sách khác!', { id: 'isbn-duplicate' });
+        toast.error('This ISBN already exists for another book!', { id: 'isbn-duplicate' });
       } else {
         setIsDuplicate(false);
       }
@@ -89,7 +89,7 @@ export const BookForm: React.FC<BookFormProps> = ({
           />
           {isDuplicate && (
             <span className="text-xs font-bold text-red-500 animate-pulse">
-                Sách này đã tồn tại trong hệ thống. Vui lòng kiểm tra lại!
+                This book already exists in the system. Please review the ISBN.
             </span>
           )}
           {isValidating && <span className="text-[10px] text-sky-400">Verifying ISBN...</span>}
@@ -146,8 +146,10 @@ export const BookForm: React.FC<BookFormProps> = ({
           disabled={isDuplicate}
         />
         <div className="flex flex-col gap-1.5">
-          <label className={`text-sm font-medium ${isDuplicate ? 'text-slate-400' : 'text-slate-700'}`}>Genre</label>
+          <label htmlFor="book-genre" className={`text-sm font-medium ${isDuplicate ? 'text-slate-400' : 'text-slate-700'}`}>Genre</label>
           <select
+            id="book-genre"
+            title="Book genre"
             value={formData.genre}
             onChange={(e) => setFormData({ ...formData, genre: e.target.value })}
             disabled={isDuplicate}
@@ -168,8 +170,11 @@ export const BookForm: React.FC<BookFormProps> = ({
         />
       </div>
       <div className="flex flex-col gap-1.5">
-        <label className={`text-sm font-medium ${isDuplicate ? 'text-slate-400' : 'text-slate-700'}`}>Description</label>
+        <label htmlFor="book-description" className={`text-sm font-medium ${isDuplicate ? 'text-slate-400' : 'text-slate-700'}`}>Description</label>
         <textarea
+          id="book-description"
+          title="Book description"
+          placeholder="Enter a short description"
           value={formData.description}
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           disabled={isDuplicate}

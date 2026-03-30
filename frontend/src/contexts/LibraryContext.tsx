@@ -10,7 +10,7 @@ import {
   deleteUser,
   registerUser
 } from '../services/localService';
-import { fetchBooksApi, searchBooksApi, addBookApi, updateBookApi, deleteBookApi } from '../services/apiService';
+import { fetchBooksApi, fetchBookByIdApi, searchBooksApi, addBookApi, updateBookApi, deleteBookApi } from '../services/apiService';
 
 interface LibraryContextType {
   books: Book[];
@@ -26,7 +26,7 @@ interface LibraryContextType {
   
   // Loan Actions
   borrowBook: (book: Book) => Promise<void>;
-  returnBookItem: (loan: Loan) => Promise<void>;
+  returnBookItem: (loan: Loan) => Promise<Loan>;
   
   // User Actions (Admin)
   removeUser: (user: UserProfile) => Promise<void>;
@@ -47,7 +47,38 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     try {
       const booksData = await fetchBooksApi();
-      setBooks(booksData);
+
+      const normalizedBooks = booksData.map((book) => {
+        const quantity = Number(book.quantity || 0);
+        const available = Number(book.available || 0);
+        const clampedAvailable = quantity > 0
+          ? Math.min(quantity, Math.max(0, available))
+          : Math.max(0, available);
+
+        return {
+          ...book,
+          available: clampedAvailable,
+        };
+      });
+
+      setBooks(normalizedBooks);
+
+      // Self-heal invalid stock rows persisted in backend (e.g. 9/5).
+      const invalidBookUpdates = booksData
+        .map((book, index) => ({
+          id: book.id,
+          available: normalizedBooks[index].available,
+          isInvalid: book.available !== normalizedBooks[index].available,
+        }))
+        .filter((item) => item.isInvalid);
+
+      if (invalidBookUpdates.length > 0) {
+        await Promise.all(
+          invalidBookUpdates.map((item) =>
+            updateBookApi(item.id, { available: item.available }),
+          ),
+        );
+      }
     } catch (error) {
       console.error('Failed to fetch books:', error);
     } finally {
@@ -133,6 +164,12 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     try {
       await requestBorrow(book, user);
+      const currentBook = await fetchBookByIdApi(book.id);
+      if (currentBook) {
+        const nextAvailable = Math.max(0, Number(currentBook.available || 0) - 1);
+        await updateBookApi(currentBook.id, { available: nextAvailable });
+      }
+      await fetchInitialBooks();
     } finally {
       setIsLoading(false);
     }
@@ -141,7 +178,16 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   const returnBookItem = async (loan: Loan) => {
     setIsLoading(true);
     try {
-      await returnBook(loan);
+      const returnedLoan = await returnBook(loan);
+      const currentBook = await fetchBookByIdApi(returnedLoan.bookId);
+      if (currentBook) {
+        const quantity = Number(currentBook.quantity || 0);
+        const increasedAvailable = Number(currentBook.available || 0) + 1;
+        const nextAvailable = quantity > 0 ? Math.min(quantity, increasedAvailable) : increasedAvailable;
+        await updateBookApi(currentBook.id, { available: nextAvailable });
+        await fetchInitialBooks();
+      }
+      return returnedLoan;
     } finally {
       setIsLoading(false);
     }
