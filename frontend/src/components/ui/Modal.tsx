@@ -12,6 +12,7 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -19,7 +20,18 @@ export const Modal: React.FC<ModalProps> = ({
   onClose,
   title,
   children,
+  maxWidth = 'lg',
 }) => {
+  const maxWidthClasses = {
+    sm: 'max-w-sm',
+    md: 'max-w-md',
+    lg: 'max-w-lg',
+    xl: 'max-w-xl',
+    '2xl': 'max-w-2xl',
+    '3xl': 'max-w-3xl',
+    '4xl': 'max-w-4xl',
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -38,11 +50,7 @@ export const Modal: React.FC<ModalProps> = ({
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            /* THAY ĐỔI QUAN TRỌNG: 
-               - Đổi max-w-lg (512px) thành max-w-4xl (896px) 
-               - Thêm w-full để co giãn tốt trên mọi màn hình
-            */
-            className="relative w-full max-w-4xl max-h-[90vh] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+            className={`relative w-full ${maxWidthClasses[maxWidth]} max-h-[90vh] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col`}
           >
             {/* Header của Modal */}
             <div className="flex items-center justify-between px-8 py-6 border-b border-slate-100 shrink-0">

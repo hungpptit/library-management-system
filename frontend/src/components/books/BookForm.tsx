@@ -73,9 +73,10 @@ export const BookForm: React.FC<BookFormProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="md:col-span-2 flex flex-col gap-1.5">
+    <div className="px-8 py-6">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="md:col-span-2 flex flex-col gap-1.5">
           <Input
             label="ISBN"
             value={formData.isbn}
@@ -182,14 +183,15 @@ export const BookForm: React.FC<BookFormProps> = ({
         />
       </div>
       <Button 
-        type="submit" 
-        isLoading={isSubmitting} 
-        disabled={isDuplicate}
-        className={`w-full ${isDuplicate ? 'opacity-50 cursor-not-allowed bg-slate-300' : ''}`}
-      >
-        {isDuplicate ? 'Cannot Add - Duplicate ISBN' : initialData?.id ? 'Save Changes' : 'Add Book'}
-      </Button>
-    </form>
+          type="submit" 
+          isLoading={isSubmitting} 
+          disabled={isDuplicate}
+          className={`w-full ${isDuplicate ? 'opacity-50 cursor-not-allowed bg-slate-300' : ''}`}
+        >
+          {isDuplicate ? 'Cannot Add - Duplicate ISBN' : initialData?.id ? 'Save Changes' : 'Add Book'}
+        </Button>
+      </form>
+    </div>
   );
 };
 

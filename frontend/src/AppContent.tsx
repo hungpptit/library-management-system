@@ -195,16 +195,31 @@ export const AppContent = () => {
                 <Toaster />
                 
                 {/* Auth Modal */}
-                <Modal isOpen={authModal.isOpen} onClose={authModal.close} title="Library Membership">
+                <Modal 
+                  isOpen={authModal.isOpen} 
+                  onClose={authModal.close} 
+                  title="Library Membership"
+                  maxWidth="4xl"
+                >
                     <AuthPage onLogin={handleLogin} onRegister={handleRegister} isLoading={isAuthLoading} />
                 </Modal>
 
                 {/* Business Modals */}
-                <Modal isOpen={bookModal.isOpen} onClose={bookModal.close} title={bookModal.data ? 'Edit Book' : 'Add Book'}>
+                <Modal 
+                  isOpen={bookModal.isOpen} 
+                  onClose={bookModal.close} 
+                  title={bookModal.data ? 'Edit Book' : 'Add Book'}
+                  maxWidth="2xl"
+                >
                     <BookForm initialData={bookModal.data || {}} onSubmit={(data) => handleBookSubmit(data, bookModal.data, bookModal.close)} isLoading={isLibraryLoading} />
                 </Modal>
 
-                <Modal isOpen={userModal.isOpen} onClose={userModal.close} title={userModal.data ? 'Edit Reader' : 'Add Reader'}>
+                <Modal 
+                  isOpen={userModal.isOpen} 
+                  onClose={userModal.close} 
+                  title={userModal.data ? 'Edit Reader' : 'Add Reader'}
+                  maxWidth="2xl"
+                >
                     <UserForm initialData={userModal.data || {}} onSubmit={(data) => handleUserSubmit(data, userModal.data, userModal.close)} isLoading={isLibraryLoading} isAdmin={true} />
                 </Modal>
             </Layout>
