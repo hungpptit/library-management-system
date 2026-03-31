@@ -22,7 +22,7 @@ export const BorrowingProgress: React.FC<BorrowingProgressProps> = ({ loan }) =>
 
   return (
     <Card className="flex flex-col gap-4 p-6 border-l-4 border-sky-500">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between">z
         <div className="flex flex-col gap-1">
           <h3 className="font-bold text-slate-900">{loan.bookTitle}</h3>
           <div className="flex items-center gap-2 text-sm text-slate-500">
