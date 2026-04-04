@@ -15,6 +15,7 @@ interface AdminReadersProps {
   onAddUser: () => void;
   onEditUser: (user: UserProfile) => void;
   onDeleteUser: (user: UserProfile) => void;
+  currentUserRole?: string;
 }
 
 export const AdminReaders: React.FC<AdminReadersProps> = ({
@@ -22,7 +23,17 @@ export const AdminReaders: React.FC<AdminReadersProps> = ({
   onAddUser,
   onEditUser,
   onDeleteUser,
+  currentUserRole = 'admin',
 }) => {
+  // Basic role-based access check
+  if (currentUserRole !== 'admin') {
+    return (
+      <div className="text-center p-8">
+        <p className="text-slate-600 font-medium">Access denied. Only administrators can manage readers.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-8">
       <SectionHeader

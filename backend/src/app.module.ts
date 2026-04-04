@@ -13,7 +13,7 @@ import { LoansModule } from './loans/loans.module';
       host: 'localhost',
       port: 1433,
       username: 'sa',
-      password: '123',
+      password: '12345',
       database: 'LMS',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: false,

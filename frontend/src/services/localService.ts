@@ -354,6 +354,17 @@ export const updateUser = async (uid: string, data: Partial<UserProfile>) => {
 };
 
 export const deleteUser = async (uid: string) => {
+  const loans = getLocalData<Loan[]>(LOANS_KEY, INITIAL_LOANS);
+  
+  // Check if user has active loans
+  const hasActiveLoans = loans.some(
+    (loan) => loan.readerId === uid && loan.status !== 'Returned'
+  );
+  
+  if (hasActiveLoans) {
+    throw new Error('Cannot delete user who has active borrowing. Please return all books first.');
+  }
+  
   const users = getLocalData<UserProfile[]>(USERS_KEY, INITIAL_USERS);
   const filtered = users.filter(u => u.uid !== uid);
   saveLocalData(USERS_KEY, filtered);

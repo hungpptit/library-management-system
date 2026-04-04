@@ -131,7 +131,7 @@ export const AppContent = () => {
                         />
                     );
                 case 'loans': return <AdminLoans loans={loans} onReturn={handleReturn} onScan={() => {}} />;
-                case 'readers': return <AdminReaders users={users} onAddUser={() => userModal.open()} onEditUser={userModal.open} onDeleteUser={removeUser} />;
+                case 'readers': return <AdminReaders users={users} onAddUser={() => userModal.open()} onEditUser={userModal.open} onDeleteUser={removeUser} currentUserRole={user?.role} />;
                 case 'books': return <AdminBooks books={books} onAddBook={() => bookModal.open()} onEditBook={bookModal.open} onDeleteBook={removeBook} />;
                 case 'profile': return <UserProfileView user={user} onUpdateUser={updateProfile} />;
                 default: return null;
