@@ -22,46 +22,57 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   const [type, setType] = useState<'login' | 'register'>('login');
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-white">
-      <div className="hidden md:flex flex-col justify-center gap-8 w-1/2 bg-sky-50 p-20">
-        <div className="flex items-center gap-4 text-sky-600 font-bold text-4xl">
-          <Library className="w-16 h-16" />
+    /* flex-col giúp form luôn chiếm trọn chiều rộng khi banner ẩn */
+    <div className="flex flex-col xl:flex-row bg-white overflow-hidden">
+      
+      {/* 1. PHẦN BANNER: Chỉ hiện khi màn hình cực lớn (xl). 
+          Trong Modal thông thường, nó sẽ ẩn đi để nhường chỗ cho Form */}
+      <div className="hidden xl:flex flex-col justify-center gap-6 w-[400px] bg-sky-50 p-10 border-r border-sky-100">
+        <div className="flex items-center gap-3 text-sky-600 font-bold text-2xl">
+          <Library className="w-8 h-8" />
           <span>LMS</span>
         </div>
-        <div className="flex flex-col gap-4 max-w-lg">
-          <h1 className="text-5xl font-bold text-slate-900 tracking-tight leading-tight">
-            Your Gateway to a <span className="text-sky-500">World of Knowledge</span>
+        <div className="space-y-4">
+          <h1 className="text-3xl font-bold text-slate-900 leading-tight">
+            Your Gateway to <span className="text-sky-500">Knowledge</span>
           </h1>
-          <p className="text-slate-500 text-xl leading-relaxed">
-            Join our modern library community and access thousands of digital and physical resources with ease.
+          <p className="text-slate-500 text-sm leading-relaxed">
+            Access thousands of resources with our modern library system.
           </p>
         </div>
-        <div className="mt-12 grid grid-cols-2 gap-8">
-          <div className="flex flex-col gap-2">
-            <span className="text-3xl font-bold text-sky-500">10k+</span>
-            <span className="text-sm font-medium text-slate-500 uppercase tracking-wider">Books Available</span>
+        <div className="mt-6 grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-xl font-bold text-sky-500">10k+</p>
+            <p className="text-[10px] text-slate-400 uppercase font-bold">Books</p>
           </div>
-          <div className="flex flex-col gap-2">
-            <span className="text-3xl font-bold text-sky-500">5k+</span>
-            <span className="text-sm font-medium text-slate-500 uppercase tracking-wider">Active Readers</span>
+          <div>
+            <p className="text-xl font-bold text-sky-500">5k+</p>
+            <p className="text-[10px] text-slate-400 uppercase font-bold">Readers</p>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-8">
+      {/* 2. PHẦN FORM: Giờ đây sẽ chiếm 100% Modal, chữ sẽ cực kỳ rõ ràng */}
+      <div className="flex-1 flex items-center justify-center p-8 sm:p-12 bg-white">
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="w-full max-w-md flex flex-col gap-8"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-[360px] flex flex-col gap-8" // Giới hạn chiều rộng form để đẹp hơn
         >
-          <div className="flex flex-col gap-2 text-center md:text-left">
-            <h2 className="text-3xl font-bold text-slate-900">
+          <div className="flex flex-col gap-3 text-center">
+            {/* Logo hiện ra khi Banner ẩn */}
+            <div className="xl:hidden flex justify-center mb-2">
+                <div className="bg-sky-50 p-3 rounded-2xl">
+                    <Library className="w-10 h-10 text-sky-600" />
+                </div>
+            </div>
+            <h2 className="text-3xl font-bold text-slate-900 tracking-tight">
               {type === 'login' ? 'Welcome Back' : 'Create Account'}
             </h2>
-            <p className="text-slate-500">
+            <p className="text-slate-500 text-sm">
               {type === 'login' 
-                ? 'Enter your credentials to access your library account.' 
-                : 'Fill in the details below to join our library community.'}
+                ? 'Enter your credentials to access your account' 
+                : 'Join our library community today'}
             </p>
           </div>
 
@@ -71,46 +82,35 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             isLoading={isLoading}
           />
 
-          <div className="text-center">
+          <div className="text-center border-t border-slate-100 pt-6">
             <button
               onClick={() => setType(type === 'login' ? 'register' : 'login')}
-              className="text-sm font-medium text-sky-500 hover:text-sky-600 transition-colors"
+              className="text-sm font-bold text-sky-600 hover:text-sky-700 transition-all hover:underline"
             >
               {type === 'login' 
-                ? "Don't have an account? Create one" 
-                : 'Already have an account? Sign in'}
+                ? "Don't have an account? Sign Up" 
+                : 'Already have an account? Sign In'}
             </button>
           </div>
 
+          {/* Demo Access: Làm gọn gàng hơn ở dưới cùng */}
           {type === 'login' && (
-            <div className="mt-8 p-4 bg-slate-50 rounded-xl border border-slate-100">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Demo Credentials</p>
-                <button 
-                  onClick={() => {
-                    localStorage.clear();
-                    window.location.reload();
-                  }}
-                  className="text-[10px] font-bold text-sky-500 hover:text-sky-600 uppercase"
-                >
-                  Reset Data
-                </button>
-              </div>
-              <div className="flex flex-col gap-3">
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs font-medium text-slate-500">Admin Account:</span>
-                  <code className="text-xs bg-white p-1.5 rounded border border-slate-200 text-sky-600">admin@library.com</code>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs font-medium text-slate-500">Reader Account:</span>
-                  <code className="text-xs bg-white p-1.5 rounded border border-slate-200 text-sky-600">student@university.edu</code>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs font-medium text-slate-500">Password:</span>
-                  <code className="text-xs bg-white p-1.5 rounded border border-slate-200 text-sky-600">123</code>
-                </div>
-                <p className="text-[10px] text-slate-400 italic mt-1">* Use the credentials above to login</p>
-              </div>
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+               <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-3">Quick Demo Access</p>
+               <div className="space-y-2 text-[12px]">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Admin:</span>
+                    <span className="font-mono text-sky-600 font-bold">admin@library.com</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Reader:</span>
+                    <span className="font-mono text-sky-600 font-bold">student@university.edu</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Pass:</span>
+                    <span className="font-mono text-sky-600 font-bold">123</span>
+                  </div>
+               </div>
             </div>
           )}
         </motion.div>

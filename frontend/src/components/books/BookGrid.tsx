@@ -17,12 +17,16 @@ interface BookGridProps {
 }
 
 export const BookGrid: React.FC<BookGridProps> = ({
-  books,
+  books = [], // Default to empty array
   onBorrow,
   onEdit,
   onDelete,
   isAdmin = false,
 }) => {
+  if (!Array.isArray(books)) {
+    return <div className="text-center py-10 text-slate-500">No books found.</div>;
+  }
+  
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
       {books.map((book, index) => (

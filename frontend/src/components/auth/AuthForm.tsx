@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { Mail, Lock, User, Hash } from 'lucide-react';
+import { isEmailRegistered } from '../../services/localService';
 
 interface AuthFormProps {
   type: 'login' | 'register';
@@ -19,34 +20,109 @@ export const AuthForm: React.FC<AuthFormProps> = ({
   onSubmit,
   isLoading = false,
 }) => {
+  type FormValues = {
+    email: string;
+    password: string;
+    displayName: string;
+    studentId: string;
+  };
+
+  type FormErrors = Partial<Record<keyof FormValues, string>>;
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     displayName: '',
     studentId: '',
   });
+  const [errors, setErrors] = useState<FormErrors>({});
+
+  const validateField = (field: keyof FormValues, value: string, formType: 'login' | 'register'): string | undefined => {
+    const normalized = value.trim();
+
+    if (field === 'email') {
+      if (!normalized) return 'Please enter your email address.';
+      if (!/^\S+@\S+\.\S+$/.test(normalized)) return 'Please enter a valid email address.';
+      if (formType === 'register' && isEmailRegistered(normalized)) {
+        return 'Email already exists. Please use another email.';
+      }
+      return undefined;
+    }
+
+    if (field === 'password') {
+      if (!normalized) return 'Please enter your password.';
+      if (normalized.length < 3) return 'Password must be at least 3 characters.';
+      return undefined;
+    }
+
+    if (formType === 'register' && field === 'displayName') {
+      if (!normalized) return 'Please enter your full name.';
+      return undefined;
+    }
+
+    if (formType === 'register' && field === 'studentId') {
+      if (!normalized) return 'Please enter your student ID.';
+      if (!/^N22DCCN\d{3}$/.test(normalized.toUpperCase())) {
+        return 'Student ID must match format N22DCCNXXX.';
+      }
+      return undefined;
+    }
+
+    return undefined;
+  };
+
+  const validate = (values: FormValues): FormErrors => {
+    const nextErrors: FormErrors = {};
+    (['email', 'password', 'displayName', 'studentId'] as Array<keyof FormValues>).forEach((field) => {
+      const error = validateField(field, values[field], type);
+      if (error) {
+        nextErrors[field] = error;
+      }
+    });
+    return nextErrors;
+  };
+
+  const updateField = (field: keyof FormValues, value: string) => {
+    setFormData((prev) => {
+      const next = { ...prev, [field]: value };
+      setErrors((current) => ({
+        ...current,
+        [field]: validateField(field, value, type),
+      }));
+      return next;
+    });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const nextErrors = validate(formData);
+    setErrors(nextErrors);
+
+    if (Object.keys(nextErrors).length > 0) {
+      return;
+    }
+
     onSubmit(formData);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+    <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-6">
       {type === 'register' && (
         <>
           <Input
             label="Full Name"
             icon={<User className="w-4 h-4" />}
             value={formData.displayName}
-            onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
+            onChange={(e) => updateField('displayName', e.target.value)}
+            error={errors.displayName}
             required
           />
           <Input
             label="Student ID"
             icon={<Hash className="w-4 h-4" />}
             value={formData.studentId}
-            onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
+            onChange={(e) => updateField('studentId', e.target.value)}
+            error={errors.studentId}
             required
           />
         </>
@@ -56,7 +132,8 @@ export const AuthForm: React.FC<AuthFormProps> = ({
         type="email"
         icon={<Mail className="w-4 h-4" />}
         value={formData.email}
-        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+        onChange={(e) => updateField('email', e.target.value)}
+        error={errors.email}
         required
       />
       <Input
@@ -64,7 +141,8 @@ export const AuthForm: React.FC<AuthFormProps> = ({
         type="password"
         icon={<Lock className="w-4 h-4" />}
         value={formData.password}
-        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+        onChange={(e) => updateField('password', e.target.value)}
+        error={errors.password}
         required
       />
       <Button type="submit" isLoading={isLoading} className="w-full">

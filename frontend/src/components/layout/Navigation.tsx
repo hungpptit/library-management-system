@@ -1,10 +1,5 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import React from 'react';
-import { Library, Search, BookOpen, User, LogOut, LayoutDashboard } from 'lucide-react';
+import { Library, Search, BookOpen, User, LogOut, LayoutDashboard, LogIn } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface NavigationProps {
@@ -12,6 +7,7 @@ interface NavigationProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   onLogout: () => void;
+  onLoginClick: () => void; // Thêm prop này
 }
 
 export const Navigation: React.FC<NavigationProps> = ({
@@ -19,10 +15,11 @@ export const Navigation: React.FC<NavigationProps> = ({
   activeTab,
   onTabChange,
   onLogout,
+  onLoginClick,
 }) => {
+  // Logic phân quyền menu: Admin không thấy Home, Reader thấy Home
   const navItems = userRole === 'admin' 
     ? [
-        { id: 'home', label: 'Home', icon: Search },
         { id: 'admin', label: 'Dashboard', icon: LayoutDashboard },
         { id: 'books', label: 'Books', icon: Library },
         { id: 'loans', label: 'Loans', icon: BookOpen },
@@ -70,13 +67,24 @@ export const Navigation: React.FC<NavigationProps> = ({
         })}
       </div>
 
-      <button
-        onClick={onLogout}
-        className="hidden md:flex items-center gap-2 text-slate-400 hover:text-red-500 transition-all font-medium"
-      >
-        <LogOut className="w-5 h-5" />
-        <span>Logout</span>
-      </button>
+      {/* Nút Logout hoặc Login dựa trên trạng thái đăng nhập */}
+      {userRole ? (
+        <button
+          onClick={onLogout}
+          className="hidden md:flex items-center gap-2 text-slate-400 hover:text-red-500 transition-all font-medium"
+        >
+          <LogOut className="w-5 h-5" />
+          <span>Logout</span>
+        </button>
+      ) : (
+        <button
+          onClick={onLoginClick}
+          className="hidden md:flex items-center gap-2 text-sky-600 hover:text-sky-700 transition-all font-bold"
+        >
+          <LogIn className="w-5 h-5" />
+          <span>Login</span>
+        </button>
+      )}
     </nav>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Book, UserProfile } from './types';
+import { Book, UserProfile, Loan } from './types';
 import { useAuth } from './contexts/AuthContext';
 import { useLibrary } from './contexts/LibraryContext';
 import { Layout } from './components/layout/Layout';
@@ -17,41 +17,53 @@ import { UserForm } from './components/users/UserForm';
 import { Loading } from './components/ui/Loading';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { Toaster, toast } from 'react-hot-toast';
-import { useBookSearch } from './hooks/useBookSearch';
 import { useModal } from './hooks/useModal';
 import { useLibraryActions } from './hooks/useLibraryActions';
+import { User } from 'lucide-react'; // Đảm bảo đã import icon User
 
 export const AppContent = () => {
     // Contexts
     const { user, isAuthReady, login, register, logout, updateProfile } = useAuth();
-    const { books, loans, users, isLoading: isLibraryLoading, removeBook, removeUser } = useLibrary();
+    const { books, loans, users, isLoading: isLibraryLoading, removeBook, removeUser, searchBooks } = useLibrary();
 
     // Custom Hooks
     const bookModal = useModal<Book>();
     const userModal = useModal<UserProfile>();
+    const authModal = useModal(); 
     const { handleBorrow, handleReturn, handleBookSubmit, handleUserSubmit } = useLibraryActions();
 
     // Local UI State
     const [activeTab, setActiveTab] = useState('home');
     const [searchQuery, setSearchQuery] = useState('');
     const [isAuthLoading, setIsAuthLoading] = useState(false);
+    const [pendingBorrowBook, setPendingBorrowBook] = useState<Book | null>(null);
 
-    // Filter Logic using Custom Hook
-    const filteredBooks = useBookSearch(books, searchQuery);
+    // Search logic
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(() => {
+            searchBooks(searchQuery);
+        }, 500);
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchQuery, searchBooks]);
 
-    // Initialization
+    // Admin redirect
     useEffect(() => {
         if (user?.role === 'admin') setActiveTab('admin');
     }, [user]);
 
-    // Auth Handlers
     const handleLogin = async (data: any) => {
         setIsAuthLoading(true);
         try {
             await login(data);
             toast.success("Welcome back!");
+            authModal.close();
+
+            if (pendingBorrowBook) {
+                const bookToBorrow = pendingBorrowBook;
+                setPendingBorrowBook(null);
+                await handleBorrow(bookToBorrow);
+            }
         } catch (error) {
-            console.error(error);
             toast.error("Login failed");
         } finally {
             setIsAuthLoading(false);
@@ -62,44 +74,52 @@ export const AppContent = () => {
         setIsAuthLoading(true);
         try {
             await register(data);
-            toast.success("Registration successful!");
+            toast.success("Account created successfully!");
+            authModal.close();
+
+            if (pendingBorrowBook) {
+                const bookToBorrow = pendingBorrowBook;
+                setPendingBorrowBook(null);
+                await handleBorrow(bookToBorrow);
+            }
         } catch (error) {
-            console.error(error);
-            toast.error("Registration failed");
+            toast.error(error instanceof Error ? error.message : "Register failed");
         } finally {
             setIsAuthLoading(false);
         }
     };
-    
-    // Auth Check
+
+    const onBorrowWithAuth = async (book: Book) => {
+        if (!user) {
+            setPendingBorrowBook(book);
+            toast("Please login to borrow books", { icon: '🔒' });
+            authModal.open();
+            throw new Error('AUTH_REQUIRED');
+        }
+
+        await handleBorrow(book);
+    };
+
+    const handleLogout = () => {
+        logout();
+        setActiveTab('home');
+        setSearchQuery('');
+    };
+
     if (!isAuthReady) return <Loading />;
 
-    if (!user) {
-        return (
-            <ErrorBoundary>
-                <AuthPage 
-                    onLogin={handleLogin} 
-                    onRegister={handleRegister} 
-                    isLoading={isAuthLoading} 
-                />
-                <Toaster />
-            </ErrorBoundary>
-        );
-    }
-
     const renderContent = () => {
-        if (user.role === 'admin') {
+        // --- ADMIN VIEW ---
+        if (user?.role === 'admin') {
             switch (activeTab) {
-                case 'home':
-                    return <UserDashboard books={filteredBooks} onSearch={setSearchQuery} onBorrow={handleBorrow} />;
                 case 'admin':
                     return (
                         <AdminDashboard
                             stats={{
                                 totalBooks: books.length,
                                 totalReaders: users.length,
-                                activeLoans: loans.filter(l => l.status === 'Borrowing').length,
-                                overdueLoans: loans.filter(l => l.status === 'Overdue').length,
+                                activeLoans: loans.filter((l: Loan) => l.status === 'Borrowing').length,
+                                overdueLoans: loans.filter((l: Loan) => l.status === 'Overdue').length,
                             }}
                             recentLoans={loans.slice(0, 5)}
                             popularBooks={books.slice(0, 3)}
@@ -110,78 +130,97 @@ export const AppContent = () => {
                             onDeleteBook={removeBook}
                         />
                     );
-                case 'loans':
-                    return <AdminLoans loans={loans} onReturn={handleReturn} onScan={() => {}} />;
-                case 'readers':
-                    return (
-                        <AdminReaders 
-                            users={users} 
-                            onAddUser={() => userModal.open()} 
-                            onEditUser={userModal.open} 
-                            onDeleteUser={removeUser} 
-                        />
-                    );
-                case 'profile':
-                    return <UserProfileView user={user} onUpdateUser={updateProfile} />;
-                case 'books':
-                     return (
-                        <AdminBooks
-                          books={books}
-                          onAddBook={() => bookModal.open()}
-                          onEditBook={bookModal.open}
-                          onDeleteBook={removeBook}
-                        />
-                      );
+                case 'loans': return <AdminLoans loans={loans} onReturn={handleReturn} onScan={() => {}} />;
+                case 'readers': return <AdminReaders users={users} onAddUser={() => userModal.open()} onEditUser={userModal.open} onDeleteUser={removeUser} currentUserRole={user?.role} />;
+                case 'books': return <AdminBooks books={books} onAddBook={() => bookModal.open()} onEditBook={bookModal.open} onDeleteBook={removeBook} />;
+                case 'profile': return <UserProfileView user={user} onUpdateUser={updateProfile} />;
                 default: return null;
             }
         }
         
+        // --- READER & GUEST VIEW ---
         switch (activeTab) {
             case 'home':
-                return <UserDashboard books={filteredBooks} onSearch={setSearchQuery} onBorrow={handleBorrow} />;
+                return <UserDashboard books={books} onSearch={setSearchQuery} onBorrow={onBorrowWithAuth} />;
+            
             case 'my-books':
-                return (
-                    <UserBooks 
-                        activeLoans={loans.filter(l => l.status === 'Borrowing' || l.status === 'Overdue')} 
-                        loanHistory={loans.filter(l => l.status === 'Returned')} 
-                        onReturn={handleReturn} 
-                    />
-                );
+                if (!user) {
+                    return (
+                        <div className="flex flex-col items-center justify-center p-20 text-center">
+                            <p className="text-slate-500 mb-4 font-medium text-lg">Please log in to view your personal library</p>
+                            <button 
+                                onClick={() => authModal.open()} 
+                                className="bg-sky-500 text-white px-8 py-2.5 rounded-full hover:bg-sky-600 transition-all shadow-md font-semibold"
+                            >
+                                Login Now
+                            </button>
+                        </div>
+                    );
+                }
+                return <UserBooks activeLoans={loans.filter((l: Loan) => l.status !== 'Returned')} loanHistory={loans.filter((l: Loan) => l.status === 'Returned')} onReturn={handleReturn} />;
+
             case 'profile':
+                if (!user) {
+                    return (
+                        <div className="flex flex-col items-center justify-center p-20 text-center">
+                            <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                                <User className="w-10 h-10 text-slate-300" />
+                            </div>
+                            <p className="text-slate-500 mb-4 font-medium text-lg">Please log in to access your profile information</p>
+                            <button 
+                                onClick={() => authModal.open()} 
+                                className="bg-sky-500 text-white px-8 py-2.5 rounded-full hover:bg-sky-600 transition-all shadow-md font-semibold"
+                            >
+                                Sign In
+                            </button>
+                        </div>
+                    );
+                }
                 return <UserProfileView user={user} onUpdateUser={updateProfile} />;
+
             default: return null;
         }
-    };
+    }; // Kết thúc hàm renderContent
 
     return (
         <ErrorBoundary>
-            <Layout userRole={user.role} activeTab={activeTab} onTabChange={setActiveTab} onLogout={logout}>
+            <Layout 
+                userRole={user?.role} 
+                activeTab={activeTab} 
+                onTabChange={setActiveTab} 
+                onLogout={handleLogout}
+                onLoginClick={() => authModal.open()}
+            >
                 {renderContent()}
                 <Toaster />
                 
-                <Modal
-                    isOpen={bookModal.isOpen}
-                    onClose={bookModal.close}
-                    title={bookModal.data ? 'Edit Book' : 'Add New Book'}
+                {/* Auth Modal */}
+                <Modal 
+                  isOpen={authModal.isOpen} 
+                  onClose={authModal.close} 
+                  title="Library Membership"
+                  maxWidth="4xl"
                 >
-                    <BookForm
-                        initialData={bookModal.data || {}}
-                        onSubmit={(data) => handleBookSubmit(data, bookModal.data, bookModal.close)}
-                        isLoading={isLibraryLoading}
-                    />
+                    <AuthPage onLogin={handleLogin} onRegister={handleRegister} isLoading={isAuthLoading} />
                 </Modal>
 
-                <Modal
-                    isOpen={userModal.isOpen}
-                    onClose={userModal.close}
-                    title={userModal.data ? 'Edit Reader' : 'Add New Reader'}
+                {/* Business Modals */}
+                <Modal 
+                  isOpen={bookModal.isOpen} 
+                  onClose={bookModal.close} 
+                  title={bookModal.data ? 'Edit Book' : 'Add Book'}
+                  maxWidth="2xl"
                 >
-                    <UserForm
-                        initialData={userModal.data || {}}
-                        onSubmit={(data) => handleUserSubmit(data, userModal.data, userModal.close)}
-                        isLoading={isLibraryLoading}
-                        isAdmin={true}
-                    />
+                    <BookForm initialData={bookModal.data || {}} onSubmit={(data: any) => handleBookSubmit(data, bookModal.data, bookModal.close)} isLoading={isLibraryLoading} />
+                </Modal>
+
+                <Modal 
+                  isOpen={userModal.isOpen} 
+                  onClose={userModal.close} 
+                  title={userModal.data ? 'Edit Reader' : 'Add Reader'}
+                  maxWidth="2xl"
+                >
+                    <UserForm initialData={userModal.data || {}} onSubmit={(data: any) => handleUserSubmit(data, userModal.data, userModal.close)} isLoading={isLibraryLoading} isAdmin={true} />
                 </Modal>
             </Layout>
         </ErrorBoundary>

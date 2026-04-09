@@ -1,27 +1,71 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Loan } from './loan.entity';
+import { CreateLoanDto } from './dto/create-loan.dto';
+import { UpdateLoanDto } from './dto/update-loan.dto';
 
 @Injectable()
 export class LoansService {
-  private loans = []; // Temporary mock data
+  constructor(
+    @InjectRepository(Loan)
+    private readonly loanRepository: Repository<Loan>,
+  ) {}
 
-  create(loan: any) {
-    this.loans.push(loan);
-    return 'Loan created successfully';
+  async create(createLoanDto: CreateLoanDto): Promise<Loan> {
+    const loan = this.loanRepository.create(createLoanDto);
+    return this.loanRepository.save(loan);
   }
 
-  findAll() {
-    return this.loans;
+  async findAll(): Promise<Loan[]> {
+    return this.loanRepository.find({
+      relations: ['book', 'user', 'fineLogs'],
+    });
   }
 
-  findOne(id: string) {
-    return `This action returns a #${id} loan`;
+  async findOne(id: number): Promise<Loan> {
+    const loan = await this.loanRepository.findOne({
+      where: { id },
+      relations: ['book', 'user', 'fineLogs'],
+    });
+    if (!loan) {
+      throw new NotFoundException(`Loan with id ${id} not found`);
+    }
+    return loan;
   }
 
-  update(id: string, loan: any) {
-    return `This action updates a #${id} loan`;
+  async update(id: number, updateLoanDto: UpdateLoanDto): Promise<Loan> {
+    await this.loanRepository.update(id, updateLoanDto);
+    return this.findOne(id);
   }
 
-  remove(id: string) {
-    return `This action removes a #${id} loan`;
+  async remove(id: number): Promise<{ success: boolean; message: string }> {
+    const result = await this.loanRepository.delete(id);
+    if (result.affected === 0) {
+      throw new NotFoundException(`Loan with id ${id} not found`);
+    }
+    return { success: true, message: 'Loan deleted successfully' };
+  }
+
+  async borrow(
+    userId: number,
+    bookId: number,
+    dueDate: number,
+  ): Promise<Loan> {
+    const loan = this.loanRepository.create({
+      reader_id: userId,
+      book_id: bookId,
+      issue_date: Date.now(),
+      due_date: dueDate,
+      status: 'Borrowing',
+    });
+    return this.loanRepository.save(loan);
+  }
+
+  async returnLoan(id: number): Promise<Loan> {
+    const loan = await this.findOne(id);
+    loan.return_date = Date.now();
+    loan.status = 'Returned';
+    return this.loanRepository.save(loan);
   }
 }

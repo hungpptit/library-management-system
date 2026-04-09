@@ -9,11 +9,10 @@ import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { motion, AnimatePresence } from 'motion/react';
 import { Info, Book as BookIcon, Calendar, Building, DollarSign, MapPin, Check } from 'lucide-react';
-import { toast } from 'react-hot-toast';
 
 interface BookCardProps {
   book: Book;
-  onBorrow?: (book: Book) => Promise<void>;
+  onBorrow?: (book: Book) => Promise<void> | void;
   onEdit?: (book: Book) => void;
   onDelete?: (book: Book) => void;
   isAdmin?: boolean;
@@ -29,6 +28,10 @@ export const BookCard: React.FC<BookCardProps> = ({
   const [isFlipped, setIsFlipped] = useState(false);
   const [isBorrowing, setIsBorrowing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const safeQuantity = Number(book.quantity || 0);
+  const safeAvailable = safeQuantity > 0
+    ? Math.min(safeQuantity, Math.max(0, Number(book.available || 0)))
+    : Math.max(0, Number(book.available || 0));
 
   useEffect(() => {
     if (isSuccess) {
@@ -49,25 +52,17 @@ export const BookCard: React.FC<BookCardProps> = ({
     try {
       await onBorrow(book);
       setIsSuccess(true);
-      toast.success(`Successfully requested to borrow "${book.title}"!`, {
-        position: 'top-center',
-        duration: 4000,
-        style: {
-          borderRadius: '12px',
-          background: '#10b981',
-          color: '#fff',
-          fontWeight: 'bold',
-        },
-      });
     } catch (error) {
-      toast.error('Failed to request borrow. Please try again.');
+      if (error instanceof Error && error.message === 'AUTH_REQUIRED') {
+        return;
+      }
       console.error(error);
     } finally {
       setIsBorrowing(false);
     }
   };
 
-  const isOutOfStock = book.available === 0;
+  const isOutOfStock = safeAvailable === 0;
 
   return (
     <div 
@@ -83,14 +78,14 @@ export const BookCard: React.FC<BookCardProps> = ({
         <div className="absolute inset-0 w-full h-full backface-hidden bg-white rounded-2xl border border-slate-100 p-4 flex flex-col shadow-sm group-hover:shadow-md transition-shadow">
           <div className="relative h-[300px] rounded-xl overflow-hidden bg-slate-100 shrink-0 mb-4">
             <img
-              src={book.coverUrl || `https://picsum.photos/seed/${book.id}/300/400`}
+              src={book.coverUrl || (book as any).cover_url || `https://picsum.photos/seed/${book.id}/300/400`}
               alt={book.title}
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
             />
             <div className="absolute top-2 right-2">
-              <Badge variant={book.available > 0 ? 'success' : 'danger'}>
-                {book.available > 0 ? 'Available' : 'Unavailable'}
+              <Badge variant={safeAvailable > 0 ? 'success' : 'danger'}>
+                {safeAvailable > 0 ? 'Available' : 'Unavailable'}
               </Badge>
             </div>
             <div className="absolute bottom-2 right-2 p-2 bg-white/90 backdrop-blur-sm rounded-lg text-sky-500 shadow-sm">
@@ -98,14 +93,22 @@ export const BookCard: React.FC<BookCardProps> = ({
             </div>
           </div>
 
-          <div className="flex flex-col gap-1 overflow-hidden mb-2">
+            <div className="flex flex-col gap-1 overflow-hidden mb-2">
             <h3 className="font-bold text-slate-900 line-clamp-2 text-lg leading-tight">{book.title}</h3>
-            <p className="text-sm text-slate-500 line-clamp-1 font-medium">{book.author}</p>
+            <p className="text-sm text-slate-500 line-clamp-1 font-medium">
+              {Array.isArray(book.authors) && book.authors.length > 0
+                ? book.authors.map((a: any) => a.name).join(', ')
+                : typeof book.author === 'string'
+                ? book.author
+                : typeof book.author === 'object' && book.author !== null
+                ? (book.author as any).name
+                : 'Unknown Author'}
+            </p>
           </div>
 
           <div className="flex items-center justify-between mt-auto pt-3 border-t border-slate-50 shrink-0">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              {book.available}/{book.quantity} copies
+              {safeAvailable}/{safeQuantity} copies
             </span>
             <span className="text-[10px] text-sky-400 font-bold uppercase">Click for details</span>
           </div>
@@ -134,7 +137,11 @@ export const BookCard: React.FC<BookCardProps> = ({
                 <Building className="w-4 h-4 text-sky-400" />
                 <div className="flex flex-col">
                   <span className="text-[10px] uppercase font-bold text-slate-400 leading-none">Publisher</span>
-                  <span className="text-sm font-medium">{book.publisher || 'N/A'}</span>
+                  <span className="text-sm font-medium">
+                    {typeof book.publisher === 'object' && book.publisher !== null 
+                      ? (book.publisher as any).name 
+                      : (book.publisher || 'N/A')}
+                  </span>
                 </div>
               </div>
               <div className="flex items-center gap-3 text-slate-600">

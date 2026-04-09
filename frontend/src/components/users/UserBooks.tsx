@@ -30,11 +30,15 @@ export const UserBooks: React.FC<UserBooksProps> = ({
           subtitle="Track your current loans and deadlines"
         />
         {activeLoans.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {activeLoans.map((loan) => (
-              <BorrowingProgress key={loan.id} loan={loan} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {activeLoans.map((loan) => (
+                <BorrowingProgress key={loan.id} loan={loan} />
+              ))}
+            </div>
+
+            <LoanTable loans={activeLoans} onReturn={onReturn} />
+          </>
         ) : (
           <EmptyState
             title="No active loans"

@@ -1,19 +1,18 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Book, Loan, UserProfile } from '../types';
 import { useAuth } from './AuthContext';
 import { 
-  subscribeToBooks, 
   subscribeToUserLoans, 
   subscribeToAllLoans, 
   subscribeToAllUsers,
-  addBook,
-  updateBook,
-  deleteBook,
   requestBorrow,
   returnBook,
   deleteUser,
-  registerUser
+  registerUser,
+  addNewUser,
+  updateUser as updateUserService
 } from '../services/localService';
+import { fetchBooksApi, fetchBookByIdApi, searchBooksApi, addBookApi, updateBookApi, deleteBookApi } from '../services/apiService';
 
 interface LibraryContextType {
   books: Book[];
@@ -25,14 +24,16 @@ interface LibraryContextType {
   addNewBook: (book: Partial<Book>) => Promise<void>;
   updateBookDetails: (book: Partial<Book>) => Promise<void>;
   removeBook: (book: Book) => Promise<void>;
+  searchBooks: (keyword: string) => Promise<void>;
   
   // Loan Actions
   borrowBook: (book: Book) => Promise<void>;
-  returnBookItem: (loan: Loan) => Promise<void>;
+  returnBookItem: (loan: Loan) => Promise<Loan>;
   
   // User Actions (Admin)
   removeUser: (user: UserProfile) => Promise<void>;
   addUser: (user: Partial<UserProfile>) => Promise<void>;
+  updateUser: (uid: string, user: Partial<UserProfile>) => Promise<void>;
 }
 
 const LibraryContext = createContext<LibraryContextType | undefined>(undefined);
@@ -44,6 +45,63 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Fetch initial books from API
+  const fetchInitialBooks = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const booksData = await fetchBooksApi();
+
+      const normalizedBooks = booksData.map((book) => {
+        const quantity = Number(book.quantity || 0);
+        const available = Number(book.available || 0);
+        const clampedAvailable = quantity > 0
+          ? Math.min(quantity, Math.max(0, available))
+          : Math.max(0, available);
+
+        return {
+          ...book,
+          available: clampedAvailable,
+        };
+      });
+
+      setBooks(normalizedBooks);
+
+      // Self-heal invalid stock rows persisted in backend (e.g. 9/5).
+      const invalidBookUpdates = booksData
+        .map((book, index) => ({
+          id: book.id,
+          available: normalizedBooks[index].available,
+          isInvalid: book.available !== normalizedBooks[index].available,
+        }))
+        .filter((item) => item.isInvalid);
+
+      if (invalidBookUpdates.length > 0) {
+        await Promise.all(
+          invalidBookUpdates.map((item) =>
+            updateBookApi(item.id, { available: item.available }),
+          ),
+        );
+      }
+    } catch (error) {
+      console.error('Failed to fetch books:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Update logic to call API instead of filter locally
+  const searchBooks = async (keyword: string) => {
+    setIsLoading(true);
+    try {
+      const results = await searchBooksApi(keyword);
+      setBooks(results);
+    } catch (error) {
+      console.error('Search failed:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Subscribe to data changes
   useEffect(() => {
     if (!user) {
@@ -53,7 +111,8 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
         return;
     }
 
-    const unsubBooks = subscribeToBooks(setBooks);
+    // Load initial books from DB
+    fetchInitialBooks();
     
     // Subscribe to loans based on role
     const unsubLoans = user.role === 'admin' 
@@ -67,16 +126,16 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     }
 
     return () => {
-      unsubBooks();
       unsubLoans();
       unsubUsers();
     };
-  }, [user]);
+  }, [user, fetchInitialBooks]);
 
   const addNewBook = async (book: Partial<Book>) => {
     setIsLoading(true);
     try {
-      await addBook(book);
+      await addBookApi(book);
+      await fetchInitialBooks(); // Refresh list from DB
     } finally {
       setIsLoading(false);
     }
@@ -86,7 +145,8 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     if (!book.id) throw new Error("Book ID is required for update");
     setIsLoading(true);
     try {
-      await updateBook(book.id, book);
+      await updateBookApi(book.id, book);
+      await fetchInitialBooks(); // Refresh list from DB
     } finally {
       setIsLoading(false);
     }
@@ -95,7 +155,8 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   const removeBook = async (book: Book) => {
     setIsLoading(true);
     try {
-      await deleteBook(book.id);
+      await deleteBookApi(book.id);
+      await fetchInitialBooks(); // Refresh list from DB
     } finally {
       setIsLoading(false);
     }
@@ -106,6 +167,12 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     try {
       await requestBorrow(book, user);
+      const currentBook = await fetchBookByIdApi(book.id);
+      if (currentBook) {
+        const nextAvailable = Math.max(0, Number(currentBook.available || 0) - 1);
+        await updateBookApi(currentBook.id, { available: nextAvailable });
+      }
+      await fetchInitialBooks();
     } finally {
       setIsLoading(false);
     }
@@ -114,7 +181,16 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   const returnBookItem = async (loan: Loan) => {
     setIsLoading(true);
     try {
-      await returnBook(loan);
+      const returnedLoan = await returnBook(loan);
+      const currentBook = await fetchBookByIdApi(returnedLoan.bookId);
+      if (currentBook) {
+        const quantity = Number(currentBook.quantity || 0);
+        const increasedAvailable = Number(currentBook.available || 0) + 1;
+        const nextAvailable = quantity > 0 ? Math.min(quantity, increasedAvailable) : increasedAvailable;
+        await updateBookApi(currentBook.id, { available: nextAvailable });
+        await fetchInitialBooks();
+      }
+      return returnedLoan;
     } finally {
       setIsLoading(false);
     }
@@ -132,11 +208,20 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   const addUser = async (userData: Partial<UserProfile>) => {
       setIsLoading(true);
       try {
-          // This uses registerUser from service, which adds to DB
-          await registerUser(userData);
+          // Use addNewUser for admin adding users (no password requirement)
+          await addNewUser(userData);
       } finally {
           setIsLoading(false);
       }
+  }
+
+  const updateUser = async (uid: string, userData: Partial<UserProfile>) => {
+    setIsLoading(true);
+    try {
+      await updateUserService(uid, userData);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -148,10 +233,12 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
       addNewBook,
       updateBookDetails,
       removeBook,
+      searchBooks,
       borrowBook,
       returnBookItem,
       removeUser,
-      addUser
+      addUser,
+      updateUser
     }}>
       {children}
     </LibraryContext.Provider>
