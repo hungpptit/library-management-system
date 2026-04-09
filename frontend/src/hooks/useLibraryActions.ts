@@ -3,7 +3,7 @@ import { useLibrary } from '../contexts/LibraryContext';
 import { Book, Loan, UserProfile } from '../types';
 
 export const useLibraryActions = () => {
-  const { borrowBook, returnBookItem, addNewBook, updateBookDetails, addUser } = useLibrary();
+  const { borrowBook, returnBookItem, addNewBook, updateBookDetails, addUser, updateUser } = useLibrary();
 
   const handleBorrow = async (book: Book) => {
     try {
@@ -51,15 +51,19 @@ export const useLibraryActions = () => {
 const handleUserSubmit = async (data: Partial<UserProfile>, selectedUser: UserProfile | null, closeModal: () => void) => {
     try {
         if (selectedUser?.uid) {
-             toast.error("Update user feature requires context update");
+            // Update existing user
+            await updateUser(selectedUser.uid, data);
+            toast.success("User updated");
         } else {
+            // Add new user
             await addUser(data);
             toast.success("User added");
         }
         closeModal();
     } catch (error) {
         console.error(error);
-        toast.error("Failed to save user");
+        const message = error instanceof Error ? error.message : "Failed to save user";
+        toast.error(message);
     }
 };
 

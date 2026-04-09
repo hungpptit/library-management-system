@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Book, UserProfile } from './types';
+import { Book, UserProfile, Loan } from './types';
 import { useAuth } from './contexts/AuthContext';
 import { useLibrary } from './contexts/LibraryContext';
 import { Layout } from './components/layout/Layout';
@@ -118,8 +118,8 @@ export const AppContent = () => {
                             stats={{
                                 totalBooks: books.length,
                                 totalReaders: users.length,
-                                activeLoans: loans.filter(l => l.status === 'Borrowing').length,
-                                overdueLoans: loans.filter(l => l.status === 'Overdue').length,
+                                activeLoans: loans.filter((l: Loan) => l.status === 'Borrowing').length,
+                                overdueLoans: loans.filter((l: Loan) => l.status === 'Overdue').length,
                             }}
                             recentLoans={loans.slice(0, 5)}
                             popularBooks={books.slice(0, 3)}
@@ -157,7 +157,7 @@ export const AppContent = () => {
                         </div>
                     );
                 }
-                return <UserBooks activeLoans={loans.filter(l => l.status !== 'Returned')} loanHistory={loans.filter(l => l.status === 'Returned')} onReturn={handleReturn} />;
+                return <UserBooks activeLoans={loans.filter((l: Loan) => l.status !== 'Returned')} loanHistory={loans.filter((l: Loan) => l.status === 'Returned')} onReturn={handleReturn} />;
 
             case 'profile':
                 if (!user) {
@@ -211,7 +211,7 @@ export const AppContent = () => {
                   title={bookModal.data ? 'Edit Book' : 'Add Book'}
                   maxWidth="2xl"
                 >
-                    <BookForm initialData={bookModal.data || {}} onSubmit={(data) => handleBookSubmit(data, bookModal.data, bookModal.close)} isLoading={isLibraryLoading} />
+                    <BookForm initialData={bookModal.data || {}} onSubmit={(data: any) => handleBookSubmit(data, bookModal.data, bookModal.close)} isLoading={isLibraryLoading} />
                 </Modal>
 
                 <Modal 
@@ -220,7 +220,7 @@ export const AppContent = () => {
                   title={userModal.data ? 'Edit Reader' : 'Add Reader'}
                   maxWidth="2xl"
                 >
-                    <UserForm initialData={userModal.data || {}} onSubmit={(data) => handleUserSubmit(data, userModal.data, userModal.close)} isLoading={isLibraryLoading} isAdmin={true} />
+                    <UserForm initialData={userModal.data || {}} onSubmit={(data: any) => handleUserSubmit(data, userModal.data, userModal.close)} isLoading={isLibraryLoading} isAdmin={true} />
                 </Modal>
             </Layout>
         </ErrorBoundary>

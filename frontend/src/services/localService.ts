@@ -327,6 +327,40 @@ export const loginUser = async (data: any) => {
   throw new Error('User not found');
 };
 
+// Admin function to add new user (without password requirement)
+export const addNewUser = async (data: any) => {
+  const users = getLocalData<UserProfile[]>(USERS_KEY, INITIAL_USERS);
+
+  const email = (data.email || '').trim().toLowerCase();
+  const displayName = (data.displayName || '').trim();
+  const studentId = (data.studentId || '').trim().toUpperCase();
+  const role = (data.role || 'reader').toLowerCase();
+
+  if (!email || !displayName || !studentId) {
+    throw new Error('Please complete all fields (Name, Student ID, Email).');
+  }
+
+  const existedUser = users.find((u) => u.email.toLowerCase() === email);
+  if (existedUser) {
+    throw new Error('Email already exists. Please use another email.');
+  }
+
+  // Admin can set any role and flexible student ID format
+  const newUser: UserProfile = {
+    uid: Math.random().toString(36).substring(7),
+    email,
+    displayName,
+    studentId,
+    role,
+    createdAt: Date.now(),
+    password: Math.random().toString(36).substring(7), // Generate random password
+  };
+  
+  users.push(newUser);
+  saveLocalData(USERS_KEY, users);
+  return newUser;
+};
+
 export const logoutUser = () => {
   localStorage.removeItem(CURRENT_USER_KEY);
 };
@@ -338,14 +372,37 @@ export const getCurrentUser = (): UserProfile | null => {
 export const updateUser = async (uid: string, data: Partial<UserProfile>) => {
   const users = getLocalData<UserProfile[]>(USERS_KEY, INITIAL_USERS);
   const index = users.findIndex(u => u.uid === uid);
+  
   if (index !== -1) {
+    const currentUser = users[index];
+    
+    // Check for duplicate email (exclude current user)
+    if (data.email && data.email.toLowerCase() !== currentUser.email.toLowerCase()) {
+      const emailExists = users.some(u => 
+        u.uid !== uid && u.email.toLowerCase() === (data.email || '').toLowerCase()
+      );
+      if (emailExists) {
+        throw new Error('Email already exists. Please use another email.');
+      }
+    }
+    
+    // Check for duplicate student ID (exclude current user)
+    if (data.studentId && data.studentId.toUpperCase() !== currentUser.studentId.toUpperCase()) {
+      const studentIdExists = users.some(u => 
+        u.uid !== uid && u.studentId.toUpperCase() === (data.studentId || '').toUpperCase()
+      );
+      if (studentIdExists) {
+        throw new Error('Student ID already exists. Please use another student ID.');
+      }
+    }
+    
     const updatedUser = { ...users[index], ...data };
     users[index] = updatedUser;
     saveLocalData(USERS_KEY, users);
     
     // Also update current user if it's the same person
-    const currentUser = getCurrentUser();
-    if (currentUser && currentUser.uid === uid) {
+    const currentUserFromStorage = getCurrentUser();
+    if (currentUserFromStorage && currentUserFromStorage.uid === uid) {
       saveLocalData(CURRENT_USER_KEY, updatedUser);
     }
     return updatedUser;

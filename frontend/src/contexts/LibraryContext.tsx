@@ -8,7 +8,9 @@ import {
   requestBorrow,
   returnBook,
   deleteUser,
-  registerUser
+  registerUser,
+  addNewUser,
+  updateUser as updateUserService
 } from '../services/localService';
 import { fetchBooksApi, fetchBookByIdApi, searchBooksApi, addBookApi, updateBookApi, deleteBookApi } from '../services/apiService';
 
@@ -31,6 +33,7 @@ interface LibraryContextType {
   // User Actions (Admin)
   removeUser: (user: UserProfile) => Promise<void>;
   addUser: (user: Partial<UserProfile>) => Promise<void>;
+  updateUser: (uid: string, user: Partial<UserProfile>) => Promise<void>;
 }
 
 const LibraryContext = createContext<LibraryContextType | undefined>(undefined);
@@ -205,11 +208,20 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   const addUser = async (userData: Partial<UserProfile>) => {
       setIsLoading(true);
       try {
-          // This uses registerUser from service, which adds to DB
-          await registerUser(userData);
+          // Use addNewUser for admin adding users (no password requirement)
+          await addNewUser(userData);
       } finally {
           setIsLoading(false);
       }
+  }
+
+  const updateUser = async (uid: string, userData: Partial<UserProfile>) => {
+    setIsLoading(true);
+    try {
+      await updateUserService(uid, userData);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -225,7 +237,8 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
       borrowBook,
       returnBookItem,
       removeUser,
-      addUser
+      addUser,
+      updateUser
     }}>
       {children}
     </LibraryContext.Provider>
