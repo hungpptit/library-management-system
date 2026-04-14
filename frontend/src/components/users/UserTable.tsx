@@ -8,6 +8,7 @@ import { UserProfile } from '../../types';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
+import { AlertTriangle, Trash2 } from 'lucide-react';
 
 interface UserTableProps {
   users: UserProfile[];
@@ -21,19 +22,32 @@ export const UserTable: React.FC<UserTableProps> = ({
   onDelete,
 }) => {
   const [deleteConfirm, setDeleteConfirm] = useState<UserProfile | null>(null);
+  const [errorStatus, setErrorStatus] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDeleteClick = (user: UserProfile) => {
     setDeleteConfirm(user);
+    setErrorStatus(null);
+  };
+
+  const closeModal = () => {
+    setDeleteConfirm(null);
+    setErrorStatus(null);
   };
 
   const confirmDelete = async () => {
     if (deleteConfirm) {
+      setIsDeleting(true);
+      setErrorStatus(null);
       try {
         await onDelete?.(deleteConfirm);
-        setDeleteConfirm(null);
-      } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Failed to delete user';
-        alert(errorMsg);
+        closeModal();
+      } catch (error: any) {
+        // Handle backend error messages
+        const errorMsg = error.response?.data?.message || error.message || 'Failed to delete user';
+        setErrorStatus(errorMsg);
+      } finally {
+        setIsDeleting(false);
       }
     }
   };
@@ -84,25 +98,58 @@ export const UserTable: React.FC<UserTableProps> = ({
       {deleteConfirm && (
         <Modal
           isOpen={!!deleteConfirm}
-          onClose={() => setDeleteConfirm(null)}
-          title="Confirm Delete"
+          onClose={closeModal}
+          title="Delete Reader"
+          maxWidth="md"
         >
-          <div className="flex flex-col gap-4">
-            <p className="text-slate-600">
-              Are you sure you want to delete <strong>{deleteConfirm.displayName}</strong>? This action cannot be undone.
-            </p>
-            <div className="flex justify-end gap-3">
+          <div className="flex flex-col gap-6 items-center text-center py-2">
+            <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center text-red-500 animate-in fade-in zoom-in duration-300">
+              <AlertTriangle className="w-8 h-8" />
+            </div>
+            
+            <div className="flex flex-col gap-2">
+              <h3 className="text-xl font-bold text-slate-900 leading-tight">Confirm Deletion</h3>
+              <p className="text-slate-500 max-w-[320px]">
+                Are you sure you want to delete <span className="font-semibold text-slate-700">{deleteConfirm.displayName}</span>? 
+                This action will permanently remove their library access.
+              </p>
+            </div>
+
+            {errorStatus && (
+              <div className="w-full p-4 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm flex items-start gap-3 animate-in slide-in-from-top-2 duration-200 mb-2">
+                <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                  <span className="font-bold">!</span>
+                </div>
+                <p className="text-left font-medium leading-relaxed">
+                  {errorStatus.includes('500') || errorStatus.includes('Network Error') 
+                    ? 'Server error occurred. Please try again later.' 
+                    : errorStatus}
+                </p>
+              </div>
+            )}
+
+            <div className="flex items-center gap-3 w-full pt-4 px-2">
               <Button 
                 variant="outline" 
-                onClick={() => setDeleteConfirm(null)}
+                onClick={closeModal}
+                className="flex-1 py-2.5"
+                disabled={isDeleting}
               >
-                Cancel
+                Go Back
               </Button>
               <Button 
-                className="bg-red-500 hover:bg-red-600" 
+                className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-200 flex items-center justify-center gap-2" 
                 onClick={confirmDelete}
+                disabled={isDeleting}
               >
-                Delete
+                {isDeleting ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    <span>Delete Reader</span>
+                  </>
+                )}
               </Button>
             </div>
           </div>

@@ -27,6 +27,7 @@ export const LoanTable: React.FC<LoanTableProps> = ({
       <table className="w-full text-left">
         <thead>
           <tr className="bg-slate-50 border-b border-slate-100">
+            {isAdmin && <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Loan ID</th>}
             <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Book</th>
             {isAdmin && <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Reader</th>}
             <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Issue Date</th>
@@ -41,6 +42,7 @@ export const LoanTable: React.FC<LoanTableProps> = ({
         <tbody className="divide-y divide-slate-100">
           {loans.map((loan) => (
             <tr key={loan.id} className="hover:bg-slate-50/50 transition-colors">
+              {isAdmin && <td className="px-6 py-4 font-medium text-slate-900">#{loan.id}</td>}
               <td className="px-6 py-4 font-medium text-slate-900">{loan.bookTitle}</td>
               {isAdmin && <td className="px-6 py-4 text-slate-600">{loan.readerName}</td>}
               <td className="px-6 py-4 text-slate-600">{format(loan.issueDate, 'MMM dd, yyyy')}</td>

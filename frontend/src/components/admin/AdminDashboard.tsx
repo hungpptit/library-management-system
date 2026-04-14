@@ -73,15 +73,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <BorrowingChart loans={allLoans} />
           </div>
 
-          {/* Recent Activity */}
-          <div className="flex flex-col gap-8">
-            <SectionHeader
-              title="Recent Activity"
-              subtitle="Manage the latest borrowing and return requests"
-            />
-            <LoanTable loans={recentLoans} isAdmin />
-          </div>
-
           {/* Book Inventory Management */}
           <div className="flex flex-col gap-8">
             <div className="flex items-center justify-between">

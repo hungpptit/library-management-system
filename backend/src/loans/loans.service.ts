@@ -231,19 +231,18 @@ export class LoansService {
 
     const loan = await this.searchLoan(loanId);
     const normalizedOverdueDays = Math.max(0, Number(overdueDays) || 0);
+    const bookPrice = Number(loan.book?.price || 0);
     const fineLogsToCreate: Partial<FineLog>[] = [];
 
     if (normalizedOverdueDays > 0) {
       fineLogsToCreate.push({
         loan_id: loan.id,
-        fine_amount: normalizedOverdueDays * 5000,
-        reason: `Overdue ${normalizedOverdueDays} day(s)`,
+        fine_amount: normalizedOverdueDays * (bookPrice * 0.05),
+        reason: `Overdue ${normalizedOverdueDays} day(s) - 5% per day`,
         status: 'Pending',
         created_at: Date.now(),
       });
     }
-
-    const bookPrice = Number(loan.book?.price || 0);
     if (condition === 'Damaged') {
       fineLogsToCreate.push({
         loan_id: loan.id,

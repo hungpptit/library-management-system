@@ -22,7 +22,7 @@ export const AdminLoans: React.FC<AdminLoansProps> = ({
   onReturn,
   onScan,
 }) => {
-  const [activeView, setActiveView] = useState<'queue' | 'returned' | 'all'>('all');
+  const [activeView, setActiveView] = useState<'queue' | 'returned' | 'damaged' | 'lost' | 'all'>('all');
   const [backendLoans, setBackendLoans] = useState<Loan[]>([]);
   const [hasLoadedBackend, setHasLoadedBackend] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -79,15 +79,27 @@ export const AdminLoans: React.FC<AdminLoansProps> = ({
   );
 
   const returnedLoans = useMemo(
-    () => sourceLoans.filter((loan) => loan.status === 'Returned' || loan.status === 'Damaged' || loan.status === 'Lost'),
+    () => sourceLoans.filter((loan) => loan.status === 'Returned'),
+    [sourceLoans],
+  );
+
+  const damagedLoans = useMemo(
+    () => sourceLoans.filter((loan) => loan.status === 'Damaged'),
+    [sourceLoans],
+  );
+
+  const lostLoans = useMemo(
+    () => sourceLoans.filter((loan) => loan.status === 'Lost'),
     [sourceLoans],
   );
 
   const visibleLoans = useMemo(() => {
     if (activeView === 'queue') return queueLoans;
     if (activeView === 'returned') return returnedLoans;
+    if (activeView === 'damaged') return damagedLoans;
+    if (activeView === 'lost') return lostLoans;
     return sourceLoans;
-  }, [activeView, sourceLoans, queueLoans, returnedLoans]);
+  }, [activeView, sourceLoans, queueLoans, returnedLoans, damagedLoans, lostLoans]);
 
   return (
     <div className="flex flex-col gap-8">
@@ -120,6 +132,18 @@ export const AdminLoans: React.FC<AdminLoansProps> = ({
           onClick={() => setActiveView('returned')}
         >
           Returned ({returnedLoans.length})
+        </Button>
+        <Button
+          variant={activeView === 'damaged' ? 'primary' : 'secondary'}
+          onClick={() => setActiveView('damaged')}
+        >
+          Damaged ({damagedLoans.length})
+        </Button>
+        <Button
+          variant={activeView === 'lost' ? 'primary' : 'secondary'}
+          onClick={() => setActiveView('lost')}
+        >
+          Lost ({lostLoans.length})
         </Button>
         <Button
           variant={activeView === 'all' ? 'primary' : 'secondary'}

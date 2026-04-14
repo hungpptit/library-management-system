@@ -65,7 +65,12 @@ export class UsersService {
       throw new BadRequestException('Email and password are required');
     }
 
-    const user = await this.userRepository.findOne({ where: { email } });
+    const user = await this.userRepository.findOne({ 
+      where: { 
+        email,
+        status: 'active'
+      } 
+    });
     if (!user || user.password !== password) {
       throw new UnauthorizedException('Invalid email or password');
     }
@@ -74,12 +79,17 @@ export class UsersService {
   }
 
   async findAll() {
-    const users = await this.userRepository.find({ order: { id: 'ASC' } });
+    const users = await this.userRepository.find({
+      where: { status: 'active' },
+      order: { id: 'ASC' },
+    });
     return users.map((user) => this.sanitizeUser(user));
   }
 
   async findOne(id: number) {
-    const user = await this.userRepository.findOne({ where: { id } });
+    const user = await this.userRepository.findOne({
+      where: { id, status: 'active' },
+    });
     if (!user) {
       throw new NotFoundException(`User with id ${id} not found`);
     }
@@ -87,7 +97,9 @@ export class UsersService {
   }
 
   async update(id: number, userData: any) {
-    const user = await this.userRepository.findOne({ where: { id } });
+    const user = await this.userRepository.findOne({
+      where: { id, status: 'active' },
+    });
     if (!user) {
       throw new NotFoundException(`User with id ${id} not found`);
     }
@@ -124,11 +136,28 @@ export class UsersService {
   }
 
   async remove(id: number) {
-    const result = await this.userRepository.delete(id);
-    if (result.affected === 0) {
+    const user = await this.userRepository.findOne({
+      where: { id },
+      relations: ['loans'],
+    });
+
+    if (!user) {
       throw new NotFoundException(`User with id ${id} not found`);
     }
 
-    return { success: true, message: 'User deleted successfully' };
+    const activeStatuses = ['Borrowing', 'Overdue'];
+    const hasActiveLoans = (user.loans || []).some(
+      (loan) => activeStatuses.includes(loan.status),
+    );
+
+    if (hasActiveLoans) {
+      throw new BadRequestException(
+        'Cannot delete user with active book loans. Please return all books first.',
+      );
+    }
+
+    // Perform soft delete by updating status
+    await this.userRepository.update(id, { status: 'deleted' });
+    return { success: true, message: 'User deactivated successfully' };
   }
 }

@@ -23,6 +23,9 @@ export class User {
   @Column({ type: 'nvarchar', length: 20, default: 'reader' })
   role!: string; // admin, reader
 
+  @Column({ type: 'nvarchar', length: 10, default: 'active' })
+  status!: string; // active, deleted
+
   @Column({ type: 'nvarchar', length: 255 })
   password!: string;
 

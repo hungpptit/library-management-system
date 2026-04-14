@@ -7,9 +7,9 @@ import { SectionHeader } from './ui/SectionHeader';
 
 type ReturnCondition = 'Clean' | 'Damaged' | 'Lost';
 
-const VND_PER_OVERDUE_DAY = 5000;
+const OVERDUE_PERCENTAGE_PER_DAY = 0.05; // 5% per day
 
-const formatVnd = (value: number) => `${Math.round(value).toLocaleString('vi-VN')} VND`;
+const formatUSD = (value: number) => `${value.toFixed(2)} USD`;
 
 export const ReturnBookAdmin: React.FC = () => {
   const [loanIdInput, setLoanIdInput] = useState('');
@@ -28,7 +28,10 @@ export const ReturnBookAdmin: React.FC = () => {
     return Math.ceil(diff / (24 * 60 * 60 * 1000));
   };
 
-  const calculateOverdueFine = () => calculateOverdueDays() * VND_PER_OVERDUE_DAY;
+  const calculateOverdueFine = () => {
+    const bookPrice = Number(loan?.book?.price || 0);
+    return calculateOverdueDays() * (bookPrice * OVERDUE_PERCENTAGE_PER_DAY);
+  };
 
   const calculateDamageFine = () => {
     const bookPrice = Number(loan?.book?.price || 0);
@@ -38,8 +41,10 @@ export const ReturnBookAdmin: React.FC = () => {
   };
 
   const totalFine = useMemo(() => {
-    if (condition === 'Clean') return 0;
-    return calculateOverdueFine() + calculateDamageFine();
+    // Always include overdue fine if applicable
+    const overdueFine = calculateOverdueFine();
+    if (condition === 'Clean') return overdueFine;
+    return overdueFine + calculateDamageFine();
   }, [condition, loan]);
 
   const isOverdue = () => calculateOverdueDays() > 0;
@@ -67,7 +72,7 @@ export const ReturnBookAdmin: React.FC = () => {
           <p><strong>Reader:</strong> ${selectedLoan.user?.display_name || `User #${selectedLoan.reader_id}`}</p>
           <p><strong>Book:</strong> ${selectedLoan.book?.title || 'N/A'}</p>
           <p><strong>Return condition:</strong> ${processedCondition}</p>
-          <p><strong>Total fine:</strong> ${formatVnd(fineValue)}</p>
+          <p><strong>Total fine:</strong> ${formatUSD(fineValue)}</p>
           <hr style="margin: 24px 0;" />
           <p style="font-size: 12px; color: #64748b;">You can save this receipt as PDF from the browser print dialog.</p>
         </body>
@@ -111,7 +116,7 @@ export const ReturnBookAdmin: React.FC = () => {
       const processedLoan = response?.loan || loan;
       const fineValue = 0;
 
-      toast.success(`Return processed successfully. Fine: ${formatVnd(fineValue)}`);
+      toast.success(`Return processed successfully. Fine: ${formatUSD(fineValue)}`);
       window.dispatchEvent(new CustomEvent('loans:updated'));
 
       if (window.confirm('Do you want to print a receipt?')) {
@@ -143,7 +148,7 @@ export const ReturnBookAdmin: React.FC = () => {
       const processedLoan = response?.loan || loan;
       const fineValue = Number(response?.totalFine || 0);
 
-      toast.success(`Return processed successfully. Fine: ${formatVnd(fineValue)}`);
+      toast.success(`Return processed successfully. Fine: ${formatUSD(fineValue)}`);
       window.dispatchEvent(new CustomEvent('loans:updated'));
 
       if (window.confirm('Do you want to print a receipt?')) {
@@ -195,7 +200,7 @@ export const ReturnBookAdmin: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-slate-700">
             <p><strong>Reader:</strong> {loan.user?.display_name || `User #${loan.user?.id || loan.reader_id}`}</p>
             <p><strong>Book:</strong> {loan.book?.title || 'N/A'}</p>
-            <p><strong>Book price:</strong> {formatVnd(Number(loan.book?.price || 0))}</p>
+            <p><strong>Book price:</strong> {formatUSD(Number(loan.book?.price || 0))}</p>
             <p className={isOverdue() ? 'text-rose-600 font-semibold' : ''}>
               <strong>Due date:</strong> {new Date(Number(loan.due_date)).toLocaleDateString('vi-VN')}
               {isOverdue() ? ` (Overdue ${calculateOverdueDays()} day(s))` : ' (On time)'}
@@ -243,9 +248,9 @@ export const ReturnBookAdmin: React.FC = () => {
               <AlertTriangle className="w-4 h-4" />
               <span>Automatic fine calculation</span>
             </div>
-            <p className="mt-1">Overdue fine: {formatVnd(calculateOverdueFine())}</p>
-            <p>Damage/loss fine: {formatVnd(calculateDamageFine())}</p>
-            <p className="font-bold mt-1">Total: {formatVnd(totalFine)}</p>
+            <p className="mt-1">Overdue fine: {formatUSD(calculateOverdueFine())}</p>
+            <p>Damage/loss fine: {formatUSD(calculateDamageFine())}</p>
+            <p className="font-bold mt-1">Total: {formatUSD(totalFine)}</p>
           </div>
 
           <div className="flex flex-wrap gap-2">

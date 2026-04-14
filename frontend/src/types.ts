@@ -28,6 +28,7 @@ export interface UserProfile {
   displayName: string;
   studentId: string;
   role: 'admin' | 'reader';
+  status?: 'active' | 'deleted';
   createdAt: number;
   password?: string;
 }

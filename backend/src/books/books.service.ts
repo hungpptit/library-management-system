@@ -1,10 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, Repository } from 'typeorm';
 import { Book } from './book.entity';
 import { Author } from './author.entity';
 import { Publisher } from './publisher.entity';
 import { Category } from './category.entity';
+import { Loan } from '../loans/loan.entity';
 
 @Injectable()
 export class BooksService {
@@ -17,6 +18,8 @@ export class BooksService {
     private readonly publisherRepository: Repository<Publisher>,
     @InjectRepository(Category)
     private readonly categoryRepository: Repository<Category>,
+    @InjectRepository(Loan)
+    private readonly loanRepository: Repository<Loan>,
   ) {}
 
   async create(bookData: any): Promise<Book> {
@@ -205,9 +208,22 @@ export class BooksService {
   }
 
   async remove(id: number): Promise<void> {
-    const result = await this.bookRepository.softDelete(id);
-    if (result.affected === 0) {
+    const book = await this.bookRepository.findOne({ where: { id } });
+    if (!book) {
       throw new NotFoundException(`Book with ID ${id} not found`);
     }
+
+    const activeStatuses = ['Borrowing', 'Overdue'];
+    const activeLoanCount = await this.loanRepository.count({
+      where: activeStatuses.map(status => ({ book_id: id, status })),
+    });
+
+    if (activeLoanCount > 0) {
+      throw new BadRequestException(
+        'Cannot delete this book because it is currently being borrowed. Please wait until all copies are returned.',
+      );
+    }
+
+    await this.bookRepository.softDelete(id);
   }
 }
