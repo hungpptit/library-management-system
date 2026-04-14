@@ -7,7 +7,6 @@ import React, { useState } from 'react';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { Mail, Lock, User, Hash } from 'lucide-react';
-import { isEmailRegistered } from '../../services/localService';
 
 interface AuthFormProps {
   type: 'login' | 'register';
@@ -43,9 +42,6 @@ export const AuthForm: React.FC<AuthFormProps> = ({
     if (field === 'email') {
       if (!normalized) return 'Please enter your email address.';
       if (!/^\S+@\S+\.\S+$/.test(normalized)) return 'Please enter a valid email address.';
-      if (formType === 'register' && isEmailRegistered(normalized)) {
-        return 'Email already exists. Please use another email.';
-      }
       return undefined;
     }
 

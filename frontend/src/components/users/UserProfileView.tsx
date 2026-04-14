@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserProfile } from '../../types';
 import { ProfileHeader } from './ProfileHeader';
 import { SectionHeader } from '../ui/SectionHeader';
@@ -23,8 +23,20 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({ user, onUpdate
     displayName: user.displayName,
     studentId: user.studentId,
     email: user.email,
+    phone: user.phone || '',
+    address: user.address || '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    setFormData({
+      displayName: user.displayName,
+      studentId: user.studentId,
+      email: user.email,
+      phone: user.phone || '',
+      address: user.address || '',
+    });
+  }, [user]);
 
   const settings = [
     { label: 'Account Settings', icon: UserIcon, color: 'text-sky-500' },
@@ -107,6 +119,18 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({ user, onUpdate
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="Enter your email"
+              />
+              <Input
+                label="Phone"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                placeholder="Enter your phone number"
+              />
+              <Input
+                label="Address"
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                placeholder="Enter your address"
               />
             </Card>
           ) : (

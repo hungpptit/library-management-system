@@ -2,17 +2,19 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { Book, Loan, UserProfile } from '../types';
 import { useAuth } from './AuthContext';
 import { 
-  subscribeToUserLoans, 
-  subscribeToAllLoans, 
-  subscribeToAllUsers,
-  requestBorrow,
-  returnBook,
-  deleteUser,
-  registerUser,
-  addNewUser,
-  updateUser as updateUserService
-} from '../services/localService';
-import { fetchBooksApi, fetchBookByIdApi, searchBooksApi, addBookApi, updateBookApi, deleteBookApi } from '../services/apiService';
+  fetchBooksApi,
+  searchBooksApi,
+  addBookApi,
+  updateBookApi,
+  deleteBookApi,
+  fetchUsersApi,
+  addUserApi,
+  updateUserApi,
+  deleteUserApi,
+  fetchLoansApi,
+  borrowBookApi,
+  returnLoanApi,
+} from '../services/apiService';
 
 interface LibraryContextType {
   books: Book[];
@@ -102,51 +104,64 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const fetchInitialLoans = useCallback(async () => {
+    if (!user) {
+      setLoans([]);
+      return;
+    }
+
+    try {
+      const loanResults = await fetchLoansApi(user.role === 'admin' ? undefined : user.uid);
+      setLoans(loanResults);
+    } catch (error) {
+      console.error('Failed to fetch loans:', error);
+    }
+  }, [user]);
+
+  const fetchUsers = useCallback(async () => {
+    if (user?.role !== 'admin') {
+      setUsers([]);
+      return;
+    }
+
+    try {
+      const userResults = await fetchUsersApi();
+      setUsers(userResults);
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
+    }
+  }, [user]);
+
   // Subscribe to data changes
   useEffect(() => {
     if (!user) {
-        setBooks([]);
-        setLoans([]);
-        setUsers([]);
-        return;
+      setBooks([]);
+      setLoans([]);
+      setUsers([]);
+      return;
     }
 
-    // Load initial books from DB
     fetchInitialBooks();
-    
-    // Subscribe to loans based on role
-    const unsubLoans = user.role === 'admin' 
-      ? subscribeToAllLoans(setLoans) 
-      : subscribeToUserLoans(user.uid, setLoans);
-    
-    // Subscribe to users if admin
-    let unsubUsers: () => void = () => {};
-    if (user.role === 'admin') {
-      unsubUsers = subscribeToAllUsers(setUsers);
-    }
-
-    return () => {
-      unsubLoans();
-      unsubUsers();
-    };
-  }, [user, fetchInitialBooks]);
+    fetchInitialLoans();
+    fetchUsers();
+  }, [user, fetchInitialBooks, fetchInitialLoans, fetchUsers]);
 
   const addNewBook = async (book: Partial<Book>) => {
     setIsLoading(true);
     try {
       await addBookApi(book);
-      await fetchInitialBooks(); // Refresh list from DB
+      await fetchInitialBooks();
     } finally {
       setIsLoading(false);
     }
   };
 
   const updateBookDetails = async (book: Partial<Book>) => {
-    if (!book.id) throw new Error("Book ID is required for update");
+    if (!book.id) throw new Error('Book ID is required for update');
     setIsLoading(true);
     try {
       await updateBookApi(book.id, book);
-      await fetchInitialBooks(); // Refresh list from DB
+      await fetchInitialBooks();
     } finally {
       setIsLoading(false);
     }
@@ -156,7 +171,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     try {
       await deleteBookApi(book.id);
-      await fetchInitialBooks(); // Refresh list from DB
+      await fetchInitialBooks();
     } finally {
       setIsLoading(false);
     }
@@ -166,13 +181,9 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     if (!user) return;
     setIsLoading(true);
     try {
-      await requestBorrow(book, user);
-      const currentBook = await fetchBookByIdApi(book.id);
-      if (currentBook) {
-        const nextAvailable = Math.max(0, Number(currentBook.available || 0) - 1);
-        await updateBookApi(currentBook.id, { available: nextAvailable });
-      }
+      await borrowBookApi(user.uid, book.id, Date.now() + 30 * 24 * 60 * 60 * 1000);
       await fetchInitialBooks();
+      await fetchInitialLoans();
     } finally {
       setIsLoading(false);
     }
@@ -181,15 +192,9 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   const returnBookItem = async (loan: Loan) => {
     setIsLoading(true);
     try {
-      const returnedLoan = await returnBook(loan);
-      const currentBook = await fetchBookByIdApi(returnedLoan.bookId);
-      if (currentBook) {
-        const quantity = Number(currentBook.quantity || 0);
-        const increasedAvailable = Number(currentBook.available || 0) + 1;
-        const nextAvailable = quantity > 0 ? Math.min(quantity, increasedAvailable) : increasedAvailable;
-        await updateBookApi(currentBook.id, { available: nextAvailable });
-        await fetchInitialBooks();
-      }
+      const returnedLoan = await returnLoanApi(loan.id);
+      await fetchInitialBooks();
+      await fetchInitialLoans();
       return returnedLoan;
     } finally {
       setIsLoading(false);
@@ -199,30 +204,32 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   const removeUser = async (targetUser: UserProfile) => {
     setIsLoading(true);
     try {
-      await deleteUser(targetUser.uid);
+      await deleteUserApi(targetUser.uid);
+      await fetchUsers();
     } finally {
       setIsLoading(false);
     }
   };
 
   const addUser = async (userData: Partial<UserProfile>) => {
-      setIsLoading(true);
-      try {
-          // Use addNewUser for admin adding users (no password requirement)
-          await addNewUser(userData);
-      } finally {
-          setIsLoading(false);
-      }
-  }
+    setIsLoading(true);
+    try {
+      await addUserApi(userData);
+      await fetchUsers();
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const updateUser = async (uid: string, userData: Partial<UserProfile>) => {
     setIsLoading(true);
     try {
-      await updateUserService(uid, userData);
+      await updateUserApi(uid, userData);
+      await fetchUsers();
     } finally {
       setIsLoading(false);
     }
-  }
+  };
 
   return (
     <LibraryContext.Provider value={{

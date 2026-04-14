@@ -1,12 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UserProfile } from '../types';
 import { 
-  loginUser, 
-  registerUser, 
-  logoutUser, 
-  getCurrentUser, 
-  updateUser 
+  logoutUser,
+  getCurrentUser,
+  setCurrentUser,
 } from '../services/localService';
+import { loginUserApi, registerUserApi, updateUserApi } from '../services/apiService';
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -38,13 +37,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (data: any) => {
-    const loggedInUser = await loginUser(data);
+    const loggedInUser = await loginUserApi(data);
     setUser(loggedInUser);
+    setCurrentUser(loggedInUser);
   };
 
   const register = async (data: any) => {
-    const newUser = await registerUser(data);
+    const newUser = await registerUserApi(data);
     setUser(newUser);
+    setCurrentUser(newUser);
   };
 
   const logout = () => {
@@ -54,8 +55,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   
   const updateProfile = async (data: Partial<UserProfile>) => {
       if (!user) throw new Error("No user logged in");
-      const updated = await updateUser(user.uid, data);
+      const updated = await updateUserApi(user.uid, data);
       setUser(updated);
+      setCurrentUser(updated);
   };
 
   return (

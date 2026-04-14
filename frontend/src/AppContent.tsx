@@ -30,7 +30,7 @@ export const AppContent = () => {
     const bookModal = useModal<Book>();
     const userModal = useModal<UserProfile>();
     const authModal = useModal(); 
-    const { handleBorrow, handleReturn, handleBookSubmit, handleUserSubmit } = useLibraryActions();
+    const { handleBorrow, handleReturn, handleBookSubmit, handleUserSubmit, isSavingUser } = useLibraryActions();
 
     // Local UI State
     const [activeTab, setActiveTab] = useState('home');
@@ -218,9 +218,9 @@ export const AppContent = () => {
                   isOpen={userModal.isOpen} 
                   onClose={userModal.close} 
                   title={userModal.data ? 'Edit Reader' : 'Add Reader'}
-                  maxWidth="2xl"
+                  maxWidth="3xl"
                 >
-                    <UserForm initialData={userModal.data || {}} onSubmit={(data: any) => handleUserSubmit(data, userModal.data, userModal.close)} isLoading={isLibraryLoading} isAdmin={true} />
+                    <UserForm initialData={userModal.data || {}} onSubmit={(data: any) => handleUserSubmit(data, userModal.data, userModal.close)} isLoading={isSavingUser} isAdmin={true} />
                 </Modal>
             </Layout>
         </ErrorBoundary>

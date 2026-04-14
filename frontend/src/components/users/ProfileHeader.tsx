@@ -38,6 +38,16 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user }) => {
             <Shield className="w-4 h-4 text-sky-500" />
             <span className="text-sm capitalize">{user.role}</span>
           </div>
+          {user.phone ? (
+            <div className="flex items-center gap-2 text-slate-600">
+              <span className="text-sm">Phone: {user.phone}</span>
+            </div>
+          ) : null}
+          {user.address ? (
+            <div className="flex items-center gap-2 text-slate-600">
+              <span className="text-sm">Address: {user.address}</span>
+            </div>
+          ) : null}
         </div>
       </div>
     </Card>

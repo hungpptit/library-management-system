@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useLibrary } from '../contexts/LibraryContext';
 import { Book, Loan, UserProfile } from '../types';
 
 export const useLibraryActions = () => {
   const { borrowBook, returnBookItem, addNewBook, updateBookDetails, addUser, updateUser } = useLibrary();
+  const [isSavingUser, setIsSavingUser] = useState(false);
 
   const handleBorrow = async (book: Book) => {
     try {
@@ -48,24 +50,25 @@ export const useLibraryActions = () => {
     }
 };
 
-const handleUserSubmit = async (data: Partial<UserProfile>, selectedUser: UserProfile | null, closeModal: () => void) => {
+  const handleUserSubmit = async (data: Partial<UserProfile>, selectedUser: UserProfile | null, closeModal: () => void) => {
+    setIsSavingUser(true);
     try {
-        if (selectedUser?.uid) {
-            // Update existing user
-            await updateUser(selectedUser.uid, data);
-            toast.success("User updated");
-        } else {
-            // Add new user
-            await addUser(data);
-            toast.success("User added");
-        }
-        closeModal();
+      if (selectedUser?.uid) {
+        await updateUser(selectedUser.uid, data);
+        toast.success("User updated");
+      } else {
+        await addUser(data);
+        toast.success("User added");
+      }
+      closeModal();
     } catch (error) {
-        console.error(error);
-        const message = error instanceof Error ? error.message : "Failed to save user";
-        toast.error(message);
+      console.error(error);
+      const message = error instanceof Error ? error.message : "Failed to save user";
+      toast.error(message);
+    } finally {
+      setIsSavingUser(false);
     }
-};
+  };
 
-  return { handleBorrow, handleReturn, handleBookSubmit, handleUserSubmit };
+  return { handleBorrow, handleReturn, handleBookSubmit, handleUserSubmit, isSavingUser };
 };

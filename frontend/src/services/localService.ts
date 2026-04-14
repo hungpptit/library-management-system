@@ -353,7 +353,8 @@ export const addNewUser = async (data: any) => {
     studentId,
     role,
     createdAt: Date.now(),
-    password: Math.random().toString(36).substring(7), // Generate random password
+    // password: Math.random().toString(36).substring(7), // Generate random password
+    password: '123', // Default password for demo purposes
   };
   
   users.push(newUser);
@@ -363,6 +364,14 @@ export const addNewUser = async (data: any) => {
 
 export const logoutUser = () => {
   localStorage.removeItem(CURRENT_USER_KEY);
+};
+
+export const setCurrentUser = (user: UserProfile | null) => {
+  if (user) {
+    saveLocalData(CURRENT_USER_KEY, user);
+  } else {
+    localStorage.removeItem(CURRENT_USER_KEY);
+  }
 };
 
 export const getCurrentUser = (): UserProfile | null => {

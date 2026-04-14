@@ -26,7 +26,9 @@ export interface UserProfile {
   email: string;
   displayName: string;
   studentId: string;
-  role: 'admin' | 'reader';
+  phone?: string;
+  address?: string;
+  role: 'admin' | 'reader' | 'staff';
   createdAt: number;
   password?: string;
 }

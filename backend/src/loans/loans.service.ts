@@ -17,8 +17,10 @@ export class LoansService {
     return this.loanRepository.save(loan);
   }
 
-  async findAll(): Promise<Loan[]> {
+  async findAll(readerId?: number): Promise<Loan[]> {
+    const where = readerId ? { reader_id: readerId } : undefined;
     return this.loanRepository.find({
+      where,
       relations: ['book', 'user', 'fineLogs'],
     });
   }
