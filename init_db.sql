@@ -22,7 +22,7 @@ CREATE TABLE Users (
     email NVARCHAR(100) NOT NULL UNIQUE,
     display_name NVARCHAR(100) NOT NULL,
     student_id NVARCHAR(50),
-    role NVARCHAR(20) CHECK (role IN ('admin', 'staff', 'reader')),
+    role NVARCHAR(20) CHECK (role IN ('admin', 'reader')),
     password NVARCHAR(255) NOT NULL,
     created_at BIGINT NOT NULL
 );
@@ -82,7 +82,8 @@ CREATE TABLE Loans (
     issue_date BIGINT NOT NULL,
     due_date BIGINT NOT NULL,
     return_date BIGINT NULL,
-    status NVARCHAR(20) CHECK (status IN ('Borrowing', 'Returned', 'Overdue', 'Lost'))
+    return_condition NVARCHAR(255) NULL,
+    status NVARCHAR(20) CHECK (status IN ('Borrowing', 'Returned', 'Overdue', 'Lost', 'Damaged'))
 );
 
 CREATE TABLE Fine_Logs (
@@ -117,7 +118,9 @@ BEGIN
         UPDATE Books SET available = available + 1
         FROM Books INNER JOIN inserted ON Books.id = inserted.book_id
         INNER JOIN deleted ON deleted.id = inserted.id
-        WHERE inserted.status = 'Returned' AND deleted.status = 'Borrowing';
+                WHERE inserted.status = 'Returned'
+                    AND inserted.return_condition = 'Clean'
+                    AND deleted.status IN ('Borrowing', 'Overdue');
 
         -- Mất sách (Trừ kho)
         UPDATE Books SET quantity = quantity - 1
@@ -125,6 +128,13 @@ BEGIN
         INNER JOIN deleted ON deleted.id = inserted.id
         WHERE inserted.status = 'Lost' AND deleted.status IN ('Borrowing', 'Overdue');
     END
+END;
+GO
+
+-- Add return_condition for existing databases if missing.
+IF COL_LENGTH('dbo.Loans', 'return_condition') IS NULL
+BEGIN
+    ALTER TABLE Loans ADD return_condition NVARCHAR(255) NULL;
 END;
 GO
 

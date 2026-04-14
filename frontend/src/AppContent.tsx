@@ -5,12 +5,13 @@ import { useLibrary } from './contexts/LibraryContext';
 import { Layout } from './components/layout/Layout';
 import { AuthPage } from './components/auth/AuthPage';
 import { UserDashboard } from './components/users/UserDashboard';
-import { UserBooks } from './components/users/UserBooks';
 import { UserProfileView } from './components/users/UserProfileView';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { AdminBooks } from './components/admin/AdminBooks';
 import { AdminReaders } from './components/admin/AdminReaders';
 import { AdminLoans } from './components/admin/AdminLoans';
+import { MyBorrowedBooks } from './components/MyBorrowedBooks.component';
+import { ReturnBookAdmin } from './components/ReturnBookAdmin.component';
 import { Modal } from './components/ui/Modal';
 import { BookForm } from './components/books/BookForm';
 import { UserForm } from './components/users/UserForm';
@@ -63,8 +64,12 @@ export const AppContent = () => {
                 setPendingBorrowBook(null);
                 await handleBorrow(bookToBorrow);
             }
-        } catch (error) {
-            toast.error("Login failed");
+        } catch (error: any) {
+            const apiMessage = error?.response?.data?.message;
+            const message = Array.isArray(apiMessage)
+                ? apiMessage.join(', ')
+                : (apiMessage || error?.message || 'Login failed');
+            toast.error(message);
         } finally {
             setIsAuthLoading(false);
         }
@@ -82,8 +87,12 @@ export const AppContent = () => {
                 setPendingBorrowBook(null);
                 await handleBorrow(bookToBorrow);
             }
-        } catch (error) {
-            toast.error(error instanceof Error ? error.message : "Register failed");
+        } catch (error: any) {
+            const apiMessage = error?.response?.data?.message;
+            const message = Array.isArray(apiMessage)
+                ? apiMessage.join(', ')
+                : (apiMessage || error?.message || 'Register failed');
+            toast.error(message);
         } finally {
             setIsAuthLoading(false);
         }
@@ -130,7 +139,13 @@ export const AppContent = () => {
                             onDeleteBook={removeBook}
                         />
                     );
-                case 'loans': return <AdminLoans loans={loans} onReturn={handleReturn} onScan={() => {}} />;
+                case 'loans':
+                    return (
+                        <div className="flex flex-col gap-8">
+                            <ReturnBookAdmin />
+                            <AdminLoans loans={loans} onReturn={handleReturn} onScan={() => {}} />
+                        </div>
+                    );
                 case 'readers': return <AdminReaders users={users} onAddUser={() => userModal.open()} onEditUser={userModal.open} onDeleteUser={removeUser} currentUserRole={user?.role} />;
                 case 'books': return <AdminBooks books={books} onAddBook={() => bookModal.open()} onEditBook={bookModal.open} onDeleteBook={removeBook} />;
                 case 'profile': return <UserProfileView user={user} onUpdateUser={updateProfile} />;
@@ -157,7 +172,7 @@ export const AppContent = () => {
                         </div>
                     );
                 }
-                return <UserBooks activeLoans={loans.filter((l: Loan) => l.status !== 'Returned')} loanHistory={loans.filter((l: Loan) => l.status === 'Returned')} onReturn={handleReturn} />;
+                return <MyBorrowedBooks />;
 
             case 'profile':
                 if (!user) {

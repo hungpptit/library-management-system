@@ -21,7 +21,7 @@ export class User {
   address?: string;
 
   @Column({ type: 'nvarchar', length: 20, default: 'reader' })
-  role!: string; // admin, staff, reader
+  role!: string; // admin, reader
 
   @Column({ type: 'nvarchar', length: 255 })
   password!: string;

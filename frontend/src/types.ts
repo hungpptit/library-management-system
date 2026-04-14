@@ -22,6 +22,7 @@ export interface Book {
 }
 
 export interface UserProfile {
+  id?: number;
   uid: string;
   email: string;
   displayName: string;
@@ -40,6 +41,6 @@ export interface Loan {
   issueDate: number;
   dueDate: number;
   returnDate?: number;
-  status: 'Borrowing' | 'Returned' | 'Overdue';
+  status: 'Borrowing' | 'Returned' | 'Overdue' | 'Lost' | 'Damaged';
   fee: number;
 }

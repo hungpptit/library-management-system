@@ -5,7 +5,6 @@ import {
   subscribeToUserLoans, 
   subscribeToAllLoans, 
   subscribeToAllUsers,
-  requestBorrow,
   returnBook,
   deleteUser,
   registerUser,
@@ -13,6 +12,7 @@ import {
   updateUser as updateUserService
 } from '../services/localService';
 import { fetchBooksApi, fetchBookByIdApi, searchBooksApi, addBookApi, updateBookApi, deleteBookApi } from '../services/apiService';
+import { loansService } from '../services/loans.service';
 
 interface LibraryContextType {
   books: Book[];
@@ -166,12 +166,17 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     if (!user) return;
     setIsLoading(true);
     try {
-      await requestBorrow(book, user);
-      const currentBook = await fetchBookByIdApi(book.id);
-      if (currentBook) {
-        const nextAvailable = Math.max(0, Number(currentBook.available || 0) - 1);
-        await updateBookApi(currentBook.id, { available: nextAvailable });
+      if (!user.id) {
+        throw new Error('User ID not found. Please login again.');
       }
+
+      const bookId = Number(book.id);
+      if (Number.isNaN(bookId) || bookId <= 0) {
+        throw new Error('Invalid book id');
+      }
+
+      const dueDate = Date.now() + 30 * 24 * 60 * 60 * 1000;
+      await loansService.borrowBook(user.id, bookId, dueDate);
       await fetchInitialBooks();
     } finally {
       setIsLoading(false);

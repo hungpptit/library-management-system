@@ -9,9 +9,12 @@ export const useLibraryActions = () => {
     try {
       await borrowBook(book);
       toast.success("Book borrowed successfully");
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      const message = error instanceof Error ? error.message : "Failed to borrow book";
+      const apiMessage = error?.response?.data?.message;
+      const message = Array.isArray(apiMessage)
+        ? apiMessage.join(', ')
+        : (apiMessage || error?.message || "Failed to borrow book");
       toast.error(message);
       throw error;
     }

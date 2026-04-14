@@ -33,6 +33,9 @@ export class Loan {
   @Column({ type: 'nvarchar', length: 20, default: 'Borrowing' })
   status!: string; // Borrowing, Returned, Overdue, Lost
 
+  @Column({ type: 'nvarchar', length: 255, nullable: true })
+  return_condition?: string; // Clean, Damaged, Lost
+
   @OneToMany('FineLog', 'loan')
   fineLogs!: any[];
 }

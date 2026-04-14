@@ -13,12 +13,14 @@ interface LoanTableProps {
   loans: Loan[];
   onReturn?: (loan: Loan) => void;
   isAdmin?: boolean;
+  showActionColumn?: boolean;
 }
 
 export const LoanTable: React.FC<LoanTableProps> = ({
   loans,
   onReturn,
   isAdmin = false,
+  showActionColumn = true,
 }) => {
   return (
     <div className="overflow-x-auto rounded-2xl border border-slate-100 bg-white card-shadow">
@@ -31,7 +33,9 @@ export const LoanTable: React.FC<LoanTableProps> = ({
             <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Due Date</th>
             <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
             <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Fee</th>
-            <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Action</th>
+            {showActionColumn && (
+              <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Action</th>
+            )}
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
@@ -52,13 +56,15 @@ export const LoanTable: React.FC<LoanTableProps> = ({
               <td className="px-6 py-4 font-medium text-slate-900">
                 {loan.fee > 0 ? `$${loan.fee.toFixed(2)}` : '-'}
               </td>
-              <td className="px-6 py-4 text-right">
-                {loan.status !== 'Returned' && (
-                  <Button size="sm" variant="secondary" onClick={() => onReturn?.(loan)}>
-                    Return
-                  </Button>
-                )}
-              </td>
+              {showActionColumn && (
+                <td className="px-6 py-4 text-right">
+                  {loan.status !== 'Returned' && (
+                    <Button size="sm" variant="secondary" onClick={() => onReturn?.(loan)}>
+                      Return
+                    </Button>
+                  )}
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
