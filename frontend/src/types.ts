@@ -19,6 +19,7 @@ export interface Book {
   publisher?: string;
   price?: number;
   location?: string;
+  pending_count?: number;
 }
 
 export interface UserProfile {
@@ -29,6 +30,7 @@ export interface UserProfile {
   studentId: string;
   role: 'admin' | 'reader';
   status?: 'active' | 'deleted';
+  cardExpiry?: number;
   createdAt: number;
   password?: string;
 }
@@ -42,6 +44,6 @@ export interface Loan {
   issueDate: number;
   dueDate: number;
   returnDate?: number;
-  status: 'Borrowing' | 'Returned' | 'Overdue' | 'Lost' | 'Damaged';
+  status: 'Pending' | 'Borrowing' | 'Returned' | 'Overdue' | 'Lost' | 'Damaged' | 'Cancelled';
   fee: number;
 }

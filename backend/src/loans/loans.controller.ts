@@ -32,6 +32,16 @@ export class LoansController {
     return this.loansService.confirmReturnClean(id);
   }
 
+  @Post(':id/approve')
+  approvePendingLoan(@Param('id', ParseIntPipe) id: number) {
+    return this.loansService.approvePendingLoan(id);
+  }
+
+  @Post(':id/reject')
+  rejectPendingLoan(@Param('id', ParseIntPipe) id: number) {
+    return this.loansService.rejectPendingLoan(id);
+  }
+
   @Post(':id/report-damage')
   reportDamageOrLoss(
     @Param('id', ParseIntPipe) id: number,

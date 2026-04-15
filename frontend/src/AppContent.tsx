@@ -58,12 +58,7 @@ export const AppContent = () => {
             await login(data);
             toast.success("Welcome back!");
             authModal.close();
-
-            if (pendingBorrowBook) {
-                const bookToBorrow = pendingBorrowBook;
-                setPendingBorrowBook(null);
-                await handleBorrow(bookToBorrow);
-            }
+            setPendingBorrowBook(null);
         } catch (error: any) {
             const apiMessage = error?.response?.data?.message;
             const message = Array.isArray(apiMessage)
@@ -81,12 +76,7 @@ export const AppContent = () => {
             await register(data);
             toast.success("Account created successfully!");
             authModal.close();
-
-            if (pendingBorrowBook) {
-                const bookToBorrow = pendingBorrowBook;
-                setPendingBorrowBook(null);
-                await handleBorrow(bookToBorrow);
-            }
+            setPendingBorrowBook(null);
         } catch (error: any) {
             const apiMessage = error?.response?.data?.message;
             const message = Array.isArray(apiMessage)

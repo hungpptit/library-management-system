@@ -22,6 +22,29 @@ export class BooksService {
     private readonly loanRepository: Repository<Loan>,
   ) {}
 
+  private async appendPendingCounts<T extends { id: number }>(books: T[]): Promise<Array<T & { pending_count: number }>> {
+    if (books.length === 0) {
+      return [];
+    }
+
+    const pendingCounts = await this.loanRepository
+      .createQueryBuilder('loan')
+      .select('loan.book_id', 'book_id')
+      .addSelect('COUNT(*)', 'pending_count')
+      .where('loan.status = :status', { status: 'Pending' })
+      .groupBy('loan.book_id')
+      .getRawMany<{ book_id: string; pending_count: string }>();
+
+    const pendingCountMap = new Map<number, number>(
+      pendingCounts.map((item) => [Number(item.book_id), Number(item.pending_count)]),
+    );
+
+    return books.map((book) => ({
+      ...book,
+      pending_count: pendingCountMap.get(Number(book.id)) || 0,
+    }));
+  }
+
   async create(bookData: any): Promise<Book> {
     const { author, publisher, genre, category, coverUrl, ...rest } = bookData;
     
@@ -103,10 +126,12 @@ export class BooksService {
   }
 
   async findAll(): Promise<Book[]> {
-    return await this.bookRepository.find({
+    const books = await this.bookRepository.find({
       relations: ['category', 'authors', 'publisher'],
       take: 50,
     });
+
+    return this.appendPendingCounts(books);
   }
 
   async search(keyword: string): Promise<Book[]> {
@@ -114,7 +139,7 @@ export class BooksService {
       return this.findAll();
     }
 
-    return await this.bookRepository.find({
+    const books = await this.bookRepository.find({
       where: [
         { title: ILike(`%${keyword}%`) },
         { isbn: ILike(`%${keyword}%`) },
@@ -123,6 +148,8 @@ export class BooksService {
       relations: ['category', 'authors', 'publisher'],
       take: 50,
     });
+
+    return this.appendPendingCounts(books);
   }
 
   async findOne(id: number): Promise<Book> {
@@ -133,7 +160,8 @@ export class BooksService {
     if (!book) {
       throw new NotFoundException(`Book with ID ${id} not found`);
     }
-    return book;
+    const [enrichedBook] = await this.appendPendingCounts([book]);
+    return enrichedBook;
   }
 
   async update(id: number, bookData: any): Promise<Book> {
@@ -213,7 +241,7 @@ export class BooksService {
       throw new NotFoundException(`Book with ID ${id} not found`);
     }
 
-    const activeStatuses = ['Borrowing', 'Overdue'];
+    const activeStatuses = ['Pending', 'Borrowing', 'Overdue'];
     const activeLoanCount = await this.loanRepository.count({
       where: activeStatuses.map(status => ({ book_id: id, status })),
     });

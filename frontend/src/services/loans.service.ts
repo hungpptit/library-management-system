@@ -6,7 +6,8 @@ export interface ActiveLoan {
   issue_date: number;
   due_date: number;
   return_date?: number;
-  status: string;
+  status: 'Pending' | 'Borrowing' | 'Returned' | 'Overdue' | 'Lost' | 'Damaged' | 'Cancelled';
+  queue_position?: number;
   return_condition?: string;
   book?: {
     id: number;
@@ -37,6 +38,12 @@ export interface ReportDamagePayload {
   adminNote?: string;
 }
 
+export interface PendingLoanActionResponse {
+  success: boolean;
+  message: string;
+  loan: ActiveLoan;
+}
+
 export const loansService = {
   async getAllLoans(): Promise<ActiveLoan[]> {
     const response = await apiInstance.get('/loans');
@@ -49,6 +56,21 @@ export const loansService = {
       bookId,
       dueDate,
     });
+    return response.data;
+  },
+
+  async approvePendingLoan(loanId: number): Promise<ActiveLoan> {
+    const response = await apiInstance.post(`/loans/${loanId}/approve`);
+    return response.data;
+  },
+
+  async rejectPendingLoan(loanId: number): Promise<PendingLoanActionResponse> {
+    const response = await apiInstance.post(`/loans/${loanId}/reject`);
+    return response.data;
+  },
+
+  async returnLoan(loanId: number): Promise<ActiveLoan> {
+    const response = await apiInstance.put(`/loans/${loanId}/return`);
     return response.data;
   },
 

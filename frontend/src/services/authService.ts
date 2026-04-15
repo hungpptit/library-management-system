@@ -9,6 +9,8 @@ interface BackendUser {
   display_name: string;
   student_id?: string;
   role: 'admin' | 'reader';
+  status?: 'active' | 'deleted';
+  card_expiry?: number;
   created_at: number;
 }
 
@@ -19,6 +21,8 @@ const normalizeUser = (user: BackendUser): UserProfile => ({
   displayName: user.display_name,
   studentId: user.student_id || '',
   role: user.role === 'admin' ? 'admin' : 'reader',
+  status: user.status === 'deleted' ? 'deleted' : 'active',
+  cardExpiry: user.card_expiry ? Number(user.card_expiry) : undefined,
   createdAt: Number(user.created_at || Date.now()),
 });
 
@@ -109,4 +113,18 @@ export const updateUser = async (
   const normalized = normalizeUser(response.data);
   saveCurrentUser(normalized);
   return normalized;
+};
+
+export const syncCurrentUserFromApi = async (): Promise<UserProfile | null> => {
+  const localUser = getCurrentUser();
+  if (!localUser?.id) return localUser;
+
+  try {
+    const response = await apiInstance.get(`/users/${localUser.id}`);
+    const normalized = normalizeUser(response.data);
+    saveCurrentUser(normalized);
+    return normalized;
+  } catch {
+    return localUser;
+  }
 };
