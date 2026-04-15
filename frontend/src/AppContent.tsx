@@ -147,7 +147,7 @@ export const AppContent = () => {
                         </div>
                     );
                 case 'readers': return <AdminReaders users={users} onAddUser={() => userModal.open()} onEditUser={userModal.open} onDeleteUser={removeUser} currentUserRole={user?.role} />;
-                case 'books': return <AdminBooks books={books} onAddBook={() => bookModal.open()} onEditBook={bookModal.open} onDeleteBook={removeBook} />;
+                case 'books': return <AdminBooks books={books} onAddBook={() => bookModal.open()} onEditBook={bookModal.open} onDeleteBook={removeBook} onSearch={setSearchQuery} />;
                 case 'profile': return <UserProfileView user={user} onUpdateUser={updateProfile} />;
                 default: return null;
             }
