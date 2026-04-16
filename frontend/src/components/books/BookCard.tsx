@@ -36,6 +36,8 @@ export const BookCard: React.FC<BookCardProps> = ({
   const safeAvailable = safeQuantity > 0
     ? Math.min(safeQuantity, Math.max(0, Number(book.available || 0)))
     : Math.max(0, Number(book.available || 0));
+  const isOutOfStock = safeAvailable <= 0;
+  const requestButtonLabel = isOutOfStock ? 'Out of Stock' : 'Request';
 
   useEffect(() => {
     if (isSuccess) {
@@ -69,21 +71,6 @@ export const BookCard: React.FC<BookCardProps> = ({
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setShowDeleteModal(true);
-    setDeleteError(null);
-  };
-
-  const handleDeleteConfirm = async () => {
-    setIsDeleting(true);
-    setDeleteError(null);
-    try {
-      await onDelete?.(book);
-      setShowDeleteModal(false);
-    } catch (error: any) {
-      const errorMsg = error.response?.data?.message || error.message || 'Failed to delete book';
-      setDeleteError(errorMsg);
-    } finally {
-      setIsDeleting(false);
-    }
   };
 
   const closeDeleteModal = () => {
@@ -91,11 +78,29 @@ export const BookCard: React.FC<BookCardProps> = ({
     setDeleteError(null);
   };
 
-  const isOutOfStock = safeAvailable === 0;
+  const handleDeleteConfirm = async () => {
+    if (!onDelete) {
+      closeDeleteModal();
+      return;
+    }
+
+    setIsDeleting(true);
+    setDeleteError(null);
+
+    try {
+      await onDelete(book);
+      closeDeleteModal();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to delete book';
+      setDeleteError(message);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <>
-      <div 
+      <div
         className="relative h-[480px] w-full perspective-1000 cursor-pointer group"
         onClick={handleFlip}
       >
@@ -114,8 +119,8 @@ export const BookCard: React.FC<BookCardProps> = ({
                 referrerPolicy="no-referrer"
               />
               <div className="absolute top-2 right-2">
-                <Badge variant={safeAvailable > 0 ? 'success' : 'danger'}>
-                  {safeAvailable > 0 ? 'Available' : 'Unavailable'}
+                <Badge variant={safeAvailable > 0 ? 'success' : 'warning'}>
+                  {safeAvailable > 0 ? 'Available' : 'Out of stock'}
                 </Badge>
               </div>
               <div className="absolute bottom-2 right-2 p-2 bg-white/90 backdrop-blur-sm rounded-lg text-sky-500 shadow-sm">
@@ -145,10 +150,11 @@ export const BookCard: React.FC<BookCardProps> = ({
           </div>
 
           {/* Back Side */}
-          <div 
+          <div
             className="absolute inset-0 w-full h-full backface-hidden bg-white rounded-2xl border border-slate-100 p-6 flex flex-col gap-4 shadow-md rotate-y-180"
-            onClick={(e) => e.stopPropagation()} // Prevent flip when clicking buttons on back
+            onClick={(e) => e.stopPropagation()}
           >
+            {/* Prevent flip when clicking buttons on back */}
             <div className="flex items-center gap-2 pb-3 border-b border-slate-100 shrink-0">
               <BookIcon className="w-5 h-5 text-sky-500" />
               <h3 className="font-bold text-slate-900 line-clamp-1">Book Details</h3>
@@ -222,21 +228,19 @@ export const BookCard: React.FC<BookCardProps> = ({
               ) : (
                 <Button
                   size="md"
-                  className={`w-full flex items-center gap-2 transition-all duration-300 ${isOutOfStock ? '!bg-slate-300 !text-slate-500 !cursor-not-allowed' : ''}`}
-                  variant={isSuccess ? 'success' : 'primary'}
-                  disabled={isOutOfStock || isSuccess}
+                  className="w-full flex items-center gap-2 transition-all duration-300"
+                  variant={isSuccess ? 'secondary' : 'primary'}
+                  disabled={isSuccess || isOutOfStock}
                   isLoading={isBorrowing}
                   onClick={handleBorrow}
                 >
                   {isSuccess ? (
                     <>
                       <Check className="w-5 h-5" />
-                      <span>Success</span>
+                      <span>Processing</span>
                     </>
-                  ) : isOutOfStock ? (
-                    'Out of Stock'
                   ) : (
-                    'Borrow Now'
+                        'Request'
                   )}
                 </Button>
               )}

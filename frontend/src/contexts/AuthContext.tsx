@@ -5,7 +5,8 @@ import {
   registerUser, 
   logoutUser, 
   getCurrentUser, 
-  updateUser 
+  updateUser,
+  syncCurrentUserFromApi,
 } from '../services/authService';
 
 interface AuthContextType {
@@ -26,7 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        const currentUser = getCurrentUser();
+        const currentUser = await syncCurrentUserFromApi();
         setUser(currentUser);
       } catch (error) {
         console.error("Auth init error:", error);

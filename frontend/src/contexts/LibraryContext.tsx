@@ -114,29 +114,35 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Update logic to call API instead of filter locally
-  const searchBooks = async (keyword: string) => {
+  const searchBooks = useCallback(async (keyword: string) => {
+    const normalizedKeyword = keyword.trim();
+
+    if (!normalizedKeyword) {
+      await fetchInitialBooks();
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const results = await searchBooksApi(keyword);
+      const results = await searchBooksApi(normalizedKeyword);
       setBooks(results);
     } catch (error) {
       console.error('Search failed:', error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [fetchInitialBooks]);
 
   // Subscribe to data changes
   useEffect(() => {
+    // Fetch books for all users (public library - guests can see books)
+    fetchInitialBooks();
+    
     if (!user) {
-        setBooks([]);
         setLoans([]);
         setUsers([]);
         return;
     }
-
-    // Load initial books from DB
-    fetchInitialBooks();
     
     // Subscribe to loans based on role
     const unsubLoans = user.role === 'admin' 

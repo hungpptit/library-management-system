@@ -37,6 +37,39 @@ export const MyBorrowedBooks: React.FC = () => {
     return null;
   }, [user]);
 
+  const accountStatus = useMemo(() => {
+    const profile = user as any;
+    const isAccountActive = profile?.status !== 'deleted';
+    const hasCardExpiry = typeof profile?.cardExpiry === 'number';
+    const isCardValid = hasCardExpiry ? Number(profile.cardExpiry) >= Date.now() : false;
+
+    if (!isAccountActive) {
+      return {
+        tone: 'danger' as const,
+        text: 'Your account is disabled. Please contact the librarian.',
+      };
+    }
+
+    if (!hasCardExpiry) {
+      return {
+        tone: 'warning' as const,
+        text: 'Library card expiry is not set yet.',
+      };
+    }
+
+    if (!isCardValid) {
+      return {
+        tone: 'warning' as const,
+        text: 'Your library card has expired. Please renew it before borrowing.',
+      };
+    }
+
+    return {
+      tone: 'success' as const,
+      text: `Account active. Card valid until ${new Date(Number(profile.cardExpiry)).toLocaleDateString('vi-VN')}.`,
+    };
+  }, [user]);
+
   const loadMyLoans = useCallback(async () => {
     if (!currentUserId) {
       setError('Current account is missing backend user id. Please sign in again.');
@@ -92,6 +125,18 @@ export const MyBorrowedBooks: React.FC = () => {
 
   useEffect(() => {
     loadMyLoans();
+
+    const onLoansUpdated = () => {
+      loadMyLoans();
+    };
+
+    const pollId = window.setInterval(loadMyLoans, 15000);
+    window.addEventListener('loans:updated', onLoansUpdated);
+
+    return () => {
+      window.clearInterval(pollId);
+      window.removeEventListener('loans:updated', onLoansUpdated);
+    };
   }, [loadMyLoans]);
 
   return (
@@ -113,6 +158,18 @@ export const MyBorrowedBooks: React.FC = () => {
         </div>
       )}
 
+      <div
+        className={`rounded-2xl p-4 text-sm font-medium ${
+          accountStatus.tone === 'danger'
+            ? 'border border-rose-200 bg-rose-50 text-rose-700'
+            : accountStatus.tone === 'warning'
+            ? 'border border-amber-200 bg-amber-50 text-amber-800'
+            : 'border border-emerald-200 bg-emerald-50 text-emerald-700'
+        }`}
+      >
+        {accountStatus.text}
+      </div>
+
       {isLoading ? (
         <div className="rounded-2xl border border-slate-100 bg-white p-6 text-slate-500">Loading data...</div>
       ) : loans.length === 0 ? (
@@ -131,6 +188,16 @@ export const MyBorrowedBooks: React.FC = () => {
                 <p className="mt-2 inline-block rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-600">
                   Overdue {getOverdueDays(loan.due_date)} day(s)
                 </p>
+              )}
+              {loan.status === 'Pending' && (
+                <div className="mt-2 flex flex-col gap-1">
+                  <p className="inline-block rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                    Waiting for librarian confirmation
+                  </p>
+                  <p className="text-xs font-medium text-amber-700">
+                    Queue position: #{loan.queue_position || 1}
+                  </p>
+                </div>
               )}
 
               <div className="mt-4 space-y-1 text-sm text-slate-600">

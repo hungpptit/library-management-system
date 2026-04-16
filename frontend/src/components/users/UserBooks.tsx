@@ -37,7 +37,7 @@ export const UserBooks: React.FC<UserBooksProps> = ({
               ))}
             </div>
 
-            <LoanTable loans={activeLoans} onReturn={onReturn} />
+            <LoanTable loans={activeLoans} onReturn={onReturn} showActionColumn={false} />
           </>
         ) : (
           <EmptyState
@@ -54,7 +54,7 @@ export const UserBooks: React.FC<UserBooksProps> = ({
           subtitle="A record of your past library activity"
         />
         {loanHistory.length > 0 ? (
-          <LoanTable loans={loanHistory} onReturn={onReturn} />
+          <LoanTable loans={loanHistory} onReturn={onReturn} showActionColumn={false} />
         ) : (
           <EmptyState
             title="No history"

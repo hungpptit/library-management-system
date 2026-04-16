@@ -34,6 +34,14 @@ export class UsersService {
     const studentId = (userData.student_id || userData.studentId || '').trim();
     const password = (userData.password || '').trim();
     const role = this.normalizeRole(userData.role);
+    const now = Date.now();
+    const defaultCardExpiry = now + 365 * 24 * 60 * 60 * 1000;
+    const cardExpiryInput = Number(
+      userData.card_expiry ?? userData.cardExpiry ?? defaultCardExpiry,
+    );
+    const cardExpiry = Number.isFinite(cardExpiryInput)
+      ? cardExpiryInput
+      : defaultCardExpiry;
 
     if (!email || !displayName || !password) {
       throw new BadRequestException('Email, display name and password are required');
@@ -50,7 +58,9 @@ export class UsersService {
       student_id: studentId || undefined,
       password,
       role,
-      created_at: Date.now(),
+      status: 'active',
+      created_at: now,
+      card_expiry: cardExpiry,
     });
 
     const saved = await this.userRepository.save(user);
@@ -131,6 +141,22 @@ export class UsersService {
       user.role = this.normalizeRole(userData.role);
     }
 
+    if (userData.status) {
+      const nextStatus = String(userData.status).trim().toLowerCase();
+      if (nextStatus !== 'active' && nextStatus !== 'deleted') {
+        throw new BadRequestException('Status must be active or deleted');
+      }
+      user.status = nextStatus;
+    }
+
+    if (userData.card_expiry || userData.cardExpiry) {
+      const cardExpiry = Number(userData.card_expiry ?? userData.cardExpiry);
+      if (!Number.isFinite(cardExpiry) || cardExpiry <= 0) {
+        throw new BadRequestException('card_expiry must be a valid timestamp');
+      }
+      user.card_expiry = cardExpiry;
+    }
+
     const saved = await this.userRepository.save(user);
     return this.sanitizeUser(saved);
   }
@@ -145,7 +171,7 @@ export class UsersService {
       throw new NotFoundException(`User with id ${id} not found`);
     }
 
-    const activeStatuses = ['Borrowing', 'Overdue'];
+    const activeStatuses = ['Pending', 'Borrowing', 'Overdue'];
     const hasActiveLoans = (user.loans || []).some(
       (loan) => activeStatuses.includes(loan.status),
     );

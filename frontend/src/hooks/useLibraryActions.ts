@@ -8,13 +8,13 @@ export const useLibraryActions = () => {
   const handleBorrow = async (book: Book) => {
     try {
       await borrowBook(book);
-      toast.success("Book borrowed successfully");
+      toast.success('Request sent. Status is Pending, waiting for librarian confirmation.');
     } catch (error: any) {
       console.error(error);
       const apiMessage = error?.response?.data?.message;
       const message = Array.isArray(apiMessage)
         ? apiMessage.join(', ')
-        : (apiMessage || error?.message || "Failed to borrow book");
+        : (apiMessage || error?.message || 'Failed to send borrow request');
       toast.error(message);
       throw error;
     }

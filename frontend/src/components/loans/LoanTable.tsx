@@ -12,6 +12,8 @@ import { format } from 'date-fns';
 interface LoanTableProps {
   loans: Loan[];
   onReturn?: (loan: Loan) => void;
+  onApprove?: (loan: Loan) => void;
+  onReject?: (loan: Loan) => void;
   isAdmin?: boolean;
   showActionColumn?: boolean;
 }
@@ -19,9 +21,19 @@ interface LoanTableProps {
 export const LoanTable: React.FC<LoanTableProps> = ({
   loans,
   onReturn,
+  onApprove,
+  onReject,
   isAdmin = false,
   showActionColumn = true,
 }) => {
+  const getBadgeVariant = (status: Loan['status']) => {
+    if (status === 'Overdue' || status === 'Lost' || status === 'Damaged') return 'danger';
+    if (status === 'Returned') return 'success';
+    if (status === 'Pending') return 'warning';
+    if (status === 'Cancelled') return 'neutral';
+    return 'primary';
+  };
+
   return (
     <div className="overflow-x-auto rounded-2xl border border-slate-100 bg-white card-shadow">
       <table className="w-full text-left">
@@ -48,10 +60,7 @@ export const LoanTable: React.FC<LoanTableProps> = ({
               <td className="px-6 py-4 text-slate-600">{format(loan.issueDate, 'MMM dd, yyyy')}</td>
               <td className="px-6 py-4 text-slate-600">{format(loan.dueDate, 'MMM dd, yyyy')}</td>
               <td className="px-6 py-4">
-                <Badge variant={
-                  loan.status === 'Overdue' ? 'danger' : 
-                  loan.status === 'Returned' ? 'success' : 'primary'
-                }>
+                <Badge variant={getBadgeVariant(loan.status)}>
                   {loan.status}
                 </Badge>
               </td>
@@ -60,11 +69,22 @@ export const LoanTable: React.FC<LoanTableProps> = ({
               </td>
               {showActionColumn && (
                 <td className="px-6 py-4 text-right">
-                  {loan.status !== 'Returned' && (
+                  {isAdmin && loan.status === 'Pending' ? (
+                    <div className="flex items-center justify-end gap-2">
+                      <Button size="sm" variant="primary" onClick={() => onApprove?.(loan)}>
+                        Approve
+                      </Button>
+                      <Button size="sm" variant="secondary" onClick={() => onReject?.(loan)}>
+                        Reject
+                      </Button>
+                    </div>
+                  ) : loan.status === 'Pending' ? (
+                    <span className="text-sm font-medium text-amber-600">Waiting approval</span>
+                  ) : loan.status !== 'Returned' && loan.status !== 'Cancelled' ? (
                     <Button size="sm" variant="secondary" onClick={() => onReturn?.(loan)}>
                       Return
                     </Button>
-                  )}
+                  ) : null}
                 </td>
               )}
             </tr>

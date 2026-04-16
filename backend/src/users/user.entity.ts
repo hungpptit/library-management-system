@@ -26,6 +26,9 @@ export class User {
   @Column({ type: 'nvarchar', length: 10, default: 'active' })
   status!: string; // active, deleted
 
+  @Column({ type: 'bigint', nullable: true })
+  card_expiry?: number;
+
   @Column({ type: 'nvarchar', length: 255 })
   password!: string;
 
