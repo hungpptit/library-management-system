@@ -7,6 +7,7 @@ export interface Book {
   id: string;
   title: string;
   author: string;
+  authors?: Array<{ name: string }>;
   isbn: string;
   quantity: number;
   available: number;
