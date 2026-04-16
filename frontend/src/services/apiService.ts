@@ -72,9 +72,11 @@ export const fetchUsersApi = async (): Promise<UserProfile[]> => {
     // Map backend response if needed
     return response.data.map((user: any) => ({
       ...user,
-      uid: user.id.toString(), // Use id as uid for compatibility
+      uid: user.id.toString(),
       displayName: user.display_name,
       studentId: user.student_id,
+      phone: user.phone,
+      address: user.address,
     }));
   } catch (error) {
     console.error('Error fetching users from API:', error);
@@ -87,7 +89,9 @@ export const addUserApi = async (userData: Partial<UserProfile>): Promise<UserPr
     email: userData.email,
     display_name: userData.displayName,
     student_id: userData.studentId,
-    password: userData.password || '123', // Default password if not provided
+    phone: userData.phone,
+    address: userData.address,
+    password: userData.password || '123',
     role: userData.role || 'reader',
   };
   const response = await apiInstance.post('/users', payload);
@@ -97,6 +101,8 @@ export const addUserApi = async (userData: Partial<UserProfile>): Promise<UserPr
     uid: user.id.toString(),
     displayName: user.display_name,
     studentId: user.student_id,
+    phone: user.phone,
+    address: user.address,
   };
 };
 
@@ -105,6 +111,8 @@ export const updateUserApi = async (id: string | number, userData: Partial<UserP
     email: userData.email,
     display_name: userData.displayName,
     student_id: userData.studentId,
+    phone: userData.phone,
+    address: userData.address,
     role: userData.role,
   };
   const response = await apiInstance.put(`/users/${id}`, payload);
@@ -114,6 +122,8 @@ export const updateUserApi = async (id: string | number, userData: Partial<UserP
     uid: user.id.toString(),
     displayName: user.display_name,
     studentId: user.student_id,
+    phone: user.phone,
+    address: user.address,
   };
 };
 

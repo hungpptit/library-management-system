@@ -29,6 +29,8 @@ export interface UserProfile {
   email: string;
   displayName: string;
   studentId: string;
+  phone?: string;
+  address?: string;
   role: 'admin' | 'reader';
   status?: 'active' | 'deleted';
   cardExpiry?: number;
