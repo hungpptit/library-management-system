@@ -1,95 +1,86 @@
-import { Injectable, ConflictException, NotFoundException, BadRequestException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './user.entity';
-import { Loan } from '../loans/loan.entity';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    @InjectRepository(Loan)
-    private readonly loanRepository: Repository<Loan>,
   ) {}
 
   private sanitizeUser(user: User) {
-    const { password, ...rest } = user as any;
-    return rest as User;
+    const { password, ...safeUser } = user;
+    return safeUser;
   }
 
-  async create(userData: any): Promise<User> {
+  private normalizeRole(roleValue: unknown): 'admin' | 'reader' {
+    const role = String(roleValue || 'reader').trim().toLowerCase();
+    if (role !== 'admin' && role !== 'reader') {
+      throw new BadRequestException('Role must be either admin or reader');
+    }
+    return role;
+  }
+
+  async create(userData: any) {
     const email = (userData.email || '').trim().toLowerCase();
-    const displayName = (userData.displayName || userData.display_name || '').trim();
-    const studentId = (userData.studentId || userData.student_id || '').trim();
-    let password = (userData.password || '').trim();
-    const role = (userData.role || 'reader').trim().toLowerCase();
+    const displayName = (userData.display_name || userData.displayName || '').trim();
+    const studentId = (userData.student_id || userData.studentId || '').trim();
+    const password = (userData.password || '').trim();
+    const role = this.normalizeRole(userData.role);
+    const now = Date.now();
+    const defaultCardExpiry = now + 365 * 24 * 60 * 60 * 1000;
+    const cardExpiryInput = Number(
+      userData.card_expiry ?? userData.cardExpiry ?? defaultCardExpiry,
+    );
+    const cardExpiry = Number.isFinite(cardExpiryInput)
+      ? cardExpiryInput
+      : defaultCardExpiry;
 
-    if (!email || !displayName || !studentId) {
-      throw new BadRequestException('Missing required user fields');
+    if (!email || !displayName || !password) {
+      throw new BadRequestException('Email, display name and password are required');
     }
 
-    if (!password) {
-      // password = Math.random().toString(36).slice(2, 10);
-      password = '123'; // Default password for demo purposes
+    const existingUser = await this.userRepository.findOne({ where: { email } });
+    if (existingUser) {
+      throw new BadRequestException('Email already exists');
     }
-
-    const existingEmail = await this.userRepository.findOne({ where: { email } });
-    if (existingEmail) {
-      throw new ConflictException('Email already exists');
-    }
-
-    const existingStudentId = studentId
-      ? await this.userRepository.findOne({ where: { student_id: studentId } })
-      : null;
-
-    if (existingStudentId) {
-      throw new ConflictException('Student ID already exists');
-    }
-
-    const phone = userData.phone ? userData.phone.trim() : null;
-    const address = userData.address ? userData.address.trim() : null;
 
     const user = this.userRepository.create({
       email,
       display_name: displayName,
-      student_id: studentId,
-      phone,
-      address,
-      role: role === 'admin' ? 'admin' : 'reader',
+      student_id: studentId || undefined,
       password,
-      created_at: Date.now(),
+      role,
+      status: 'active',
+      created_at: now,
+      card_expiry: cardExpiry,
     });
 
-    const savedUser = await this.userRepository.save(user);
-    return this.sanitizeUser(savedUser);
+    const saved = await this.userRepository.save(user);
+    return this.sanitizeUser(saved);
   }
 
-  async findAll(): Promise<User[]> {
-    const users = await this.userRepository.find();
-    return users.map((user) => this.sanitizeUser(user));
-  }
+  async login(loginData: { email: string; password: string }) {
+    const email = (loginData.email || '').trim().toLowerCase();
+    const password = (loginData.password || '').trim();
 
-  async findOne(id: number): Promise<User> {
-    const user = await this.userRepository.findOne({ where: { id } });
-    if (!user) {
-      throw new NotFoundException(`User with id ${id} not found`);
-    }
-    return this.sanitizeUser(user);
-  }
-
-  async findByEmail(email: string): Promise<User | null> {
-    const user = await this.userRepository.findOne({ where: { email: email.trim().toLowerCase() } });
-    return user || null;
-  }
-
-  async login(email: string, password: string): Promise<User> {
-    const normalizedEmail = (email || '').trim().toLowerCase();
-    if (!normalizedEmail || !password) {
+    if (!email || !password) {
       throw new BadRequestException('Email and password are required');
     }
 
-    const user = await this.userRepository.findOne({ where: { email: normalizedEmail } });
+    const user = await this.userRepository.findOne({ 
+      where: { 
+        email,
+        status: 'active'
+      } 
+    });
     if (!user || user.password !== password) {
       throw new UnauthorizedException('Invalid email or password');
     }
@@ -97,56 +88,102 @@ export class UsersService {
     return this.sanitizeUser(user);
   }
 
-  async update(id: number, userData: any): Promise<User> {
-    const user = await this.userRepository.findOne({ where: { id } });
+  async findAll() {
+    const users = await this.userRepository.find({
+      where: { status: 'active' },
+      order: { id: 'ASC' },
+    });
+    return users.map((user) => this.sanitizeUser(user));
+  }
+
+  async findOne(id: number) {
+    const user = await this.userRepository.findOne({
+      where: { id, status: 'active' },
+    });
+    if (!user) {
+      throw new NotFoundException(`User with id ${id} not found`);
+    }
+    return this.sanitizeUser(user);
+  }
+
+  async update(id: number, userData: any) {
+    const user = await this.userRepository.findOne({
+      where: { id, status: 'active' },
+    });
     if (!user) {
       throw new NotFoundException(`User with id ${id} not found`);
     }
 
-    if (userData.email && userData.email.trim().toLowerCase() !== user.email) {
-      const existingEmail = await this.userRepository.findOne({ where: { email: userData.email.trim().toLowerCase() } });
-      if (existingEmail && existingEmail.id !== id) {
-        throw new ConflictException('Email already exists');
+    if (userData.email) {
+      const email = String(userData.email).trim().toLowerCase();
+      const emailOwner = await this.userRepository.findOne({ where: { email } });
+      if (emailOwner && emailOwner.id !== id) {
+        throw new BadRequestException('Email already exists');
       }
+      user.email = email;
     }
 
-    if (userData.studentId && userData.studentId.trim() !== user.student_id) {
-      const existingStudentId = await this.userRepository.findOne({ where: { student_id: userData.studentId.trim() } });
-      if (existingStudentId && existingStudentId.id !== id) {
-        throw new ConflictException('Student ID already exists');
-      }
+    if (userData.display_name || userData.displayName) {
+      user.display_name = String(
+        userData.display_name || userData.displayName,
+      ).trim();
     }
 
-    const updatedUser = {
-      ...user,
-      email: userData.email ? userData.email.trim().toLowerCase() : user.email,
-      display_name: userData.displayName ? userData.displayName.trim() : user.display_name,
-      student_id: userData.studentId ? userData.studentId.trim() : user.student_id,
-      phone: userData.phone !== undefined ? (String(userData.phone).trim() || null) : user.phone,
-      address: userData.address !== undefined ? (String(userData.address).trim() || null) : user.address,
-      role: userData.role ? userData.role.trim().toLowerCase() : user.role,
-      password: userData.password ? userData.password.trim() : user.password,
-    };
+    if (userData.student_id || userData.studentId) {
+      user.student_id = String(userData.student_id || userData.studentId).trim();
+    }
 
-    await this.userRepository.save(updatedUser);
-    return this.findOne(id);
+    if (userData.password) {
+      user.password = String(userData.password).trim();
+    }
+
+    if (userData.role) {
+      user.role = this.normalizeRole(userData.role);
+    }
+
+    if (userData.status) {
+      const nextStatus = String(userData.status).trim().toLowerCase();
+      if (nextStatus !== 'active' && nextStatus !== 'deleted') {
+        throw new BadRequestException('Status must be active or deleted');
+      }
+      user.status = nextStatus;
+    }
+
+    if (userData.card_expiry || userData.cardExpiry) {
+      const cardExpiry = Number(userData.card_expiry ?? userData.cardExpiry);
+      if (!Number.isFinite(cardExpiry) || cardExpiry <= 0) {
+        throw new BadRequestException('card_expiry must be a valid timestamp');
+      }
+      user.card_expiry = cardExpiry;
+    }
+
+    const saved = await this.userRepository.save(user);
+    return this.sanitizeUser(saved);
   }
 
-  async remove(id: number): Promise<void> {
-    const activeLoan = await this.loanRepository.findOne({
-      where: {
-        reader_id: id,
-        status: 'Borrowing',
-      },
+  async remove(id: number) {
+    const user = await this.userRepository.findOne({
+      where: { id },
+      relations: ['loans'],
     });
 
-    if (activeLoan) {
-      throw new BadRequestException('Cannot delete user with active borrowing records. Return books first.');
-    }
-
-    const result = await this.userRepository.delete(id);
-    if (result.affected === 0) {
+    if (!user) {
       throw new NotFoundException(`User with id ${id} not found`);
     }
+
+    const activeStatuses = ['Pending', 'Borrowing', 'Overdue'];
+    const hasActiveLoans = (user.loans || []).some(
+      (loan) => activeStatuses.includes(loan.status),
+    );
+
+    if (hasActiveLoans) {
+      throw new BadRequestException(
+        'Cannot delete user with active book loans. Please return all books first.',
+      );
+    }
+
+    // Perform soft delete by updating status
+    await this.userRepository.update(id, { status: 'deleted' });
+    return { success: true, message: 'User deactivated successfully' };
   }
 }

@@ -114,6 +114,18 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({ user, onUpdate
                 placeholder="Enter your student ID"
               />
               <Input
+                label="Phone"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                placeholder="Enter your phone"
+              />
+              <Input
+                label="Address"
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                placeholder="Enter your address"
+              />
+              <Input
                 label="Email Address"
                 type="email"
                 value={formData.email}

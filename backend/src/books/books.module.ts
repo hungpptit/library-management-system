@@ -6,9 +6,10 @@ import { Book } from './book.entity';
 import { Category } from './category.entity';
 import { Publisher } from './publisher.entity';
 import { Author } from './author.entity';
+import { Loan } from '../loans/loan.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Book, Category, Publisher, Author])],
+  imports: [TypeOrmModule.forFeature([Book, Category, Publisher, Author, Loan])],
   controllers: [BooksController],
   providers: [BooksService],
 })

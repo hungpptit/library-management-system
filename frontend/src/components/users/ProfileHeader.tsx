@@ -13,6 +13,15 @@ interface ProfileHeaderProps {
 }
 
 export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user }) => {
+  const now = Date.now();
+  const isAccountActive = user.status !== 'deleted';
+  const hasValidCard = Boolean(user.cardExpiry && Number(user.cardExpiry) >= now);
+  const cardStatusText = user.cardExpiry
+    ? hasValidCard
+      ? `Card valid until ${new Date(Number(user.cardExpiry)).toLocaleDateString('vi-VN')}`
+      : 'Library card expired'
+    : 'Card expiry not set';
+
   return (
     <Card className="flex flex-col md:flex-row items-center gap-8 p-8">
       <div className="w-24 h-24 rounded-3xl bg-sky-100 flex items-center justify-center text-sky-500">
@@ -38,16 +47,16 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user }) => {
             <Shield className="w-4 h-4 text-sky-500" />
             <span className="text-sm capitalize">{user.role}</span>
           </div>
-          {user.phone ? (
-            <div className="flex items-center gap-2 text-slate-600">
-              <span className="text-sm">Phone: {user.phone}</span>
-            </div>
-          ) : null}
-          {user.address ? (
-            <div className="flex items-center gap-2 text-slate-600">
-              <span className="text-sm">Address: {user.address}</span>
-            </div>
-          ) : null}
+          <div className="flex items-center gap-2 text-slate-600">
+            <Shield className={`w-4 h-4 ${isAccountActive ? 'text-emerald-500' : 'text-rose-500'}`} />
+            <span className="text-sm">
+              Account: {isAccountActive ? 'Active' : 'Disabled'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 text-slate-600">
+            <Shield className={`w-4 h-4 ${hasValidCard ? 'text-emerald-500' : 'text-amber-500'}`} />
+            <span className="text-sm">{cardStatusText}</span>
+          </div>
         </div>
       </div>
     </Card>
