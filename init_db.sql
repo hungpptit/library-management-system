@@ -2,6 +2,13 @@
 -- DATABASE SETUP: LIBRARY MANAGEMENT SYSTEM (LMS)
 -- ==========================================================
 
+-- 0. XÓA TRIGGERS CŨ
+IF OBJECT_ID('dbo.TRG_UpdateAvailable_OnBorrow', 'TR') IS NOT NULL DROP TRIGGER dbo.TRG_UpdateAvailable_OnBorrow;
+IF OBJECT_ID('dbo.TRG_UpdateAvailable_OnBorrowApproval', 'TR') IS NOT NULL DROP TRIGGER dbo.TRG_UpdateAvailable_OnBorrowApproval;
+IF OBJECT_ID('dbo.TRG_UpdateAvailable_OnReturn', 'TR') IS NOT NULL DROP TRIGGER dbo.TRG_UpdateAvailable_OnReturn;
+IF OBJECT_ID('dbo.TRG_SetCardExpiry_OnInsert', 'TR') IS NOT NULL DROP TRIGGER dbo.TRG_SetCardExpiry_OnInsert;
+GO
+
 -- 1. XÓA BẢNG CŨ THEO THỨ TỰ (Bảng con trước, bảng cha sau)
 IF OBJECT_ID('dbo.Fine_Logs', 'U') IS NOT NULL DROP TABLE dbo.Fine_Logs;
 IF OBJECT_ID('dbo.Book_Authors', 'U') IS NOT NULL DROP TABLE dbo.Book_Authors;
@@ -22,10 +29,16 @@ CREATE TABLE Users (
     email NVARCHAR(100) NOT NULL UNIQUE,
     display_name NVARCHAR(100) NOT NULL,
     student_id NVARCHAR(50),
-    role NVARCHAR(20) CHECK (role IN ('admin', 'staff', 'reader')),
+    role NVARCHAR(20) NOT NULL CHECK (role IN ('admin', 'reader')),
+    status NVARCHAR(10) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'deleted')),
+    card_expiry BIGINT NOT NULL,
     password NVARCHAR(255) NOT NULL,
     created_at BIGINT NOT NULL
 );
+
+-- INDEX CHO TÌM KIẾM NHANH USER HẾT HẠN
+CREATE INDEX IDX_CardExpiry ON Users(card_expiry);
+GO
 
 CREATE TABLE Categories (
     id INT IDENTITY(1,1) PRIMARY KEY,
@@ -82,7 +95,8 @@ CREATE TABLE Loans (
     issue_date BIGINT NOT NULL,
     due_date BIGINT NOT NULL,
     return_date BIGINT NULL,
-    status NVARCHAR(20) CHECK (status IN ('Borrowing', 'Returned', 'Overdue', 'Lost'))
+    return_condition NVARCHAR(255) NULL,
+    status NVARCHAR(20) CHECK (status IN ('Pending', 'Borrowing', 'Returned', 'Overdue', 'Lost', 'Damaged', 'Cancelled'))
 );
 
 CREATE TABLE Fine_Logs (
@@ -96,8 +110,19 @@ CREATE TABLE Fine_Logs (
 GO
 
 -----------------------------------------------------------
--- 4. TẠO TRIGGERS (Tự động cập nhật số lượng sách)
+-- 4. TẠO TRIGGERS (Tự động cập nhật số lượng sách + hạn thẻ)
 -----------------------------------------------------------
+
+-- TRIGGER: TỰ ĐỘNG SET HẠN THẺ = 1 NĂM KHI TẠO USER
+CREATE TRIGGER TRG_SetCardExpiry_OnInsert
+ON Users AFTER INSERT AS
+BEGIN
+    UPDATE Users 
+    SET card_expiry = DATEDIFF(SECOND, CAST('1970-01-01' AS DATETIME), DATEADD(YEAR, 1, GETUTCDATE())) * 1000
+    WHERE id IN (SELECT id FROM inserted) 
+      AND card_expiry = 0;
+END;
+GO
 
 CREATE TRIGGER TRG_UpdateAvailable_OnBorrow
 ON Loans AFTER INSERT AS
@@ -105,6 +130,20 @@ BEGIN
     UPDATE Books SET available = available - 1
     FROM Books INNER JOIN inserted ON Books.id = inserted.book_id
     WHERE inserted.status = 'Borrowing';
+END;
+GO
+
+CREATE TRIGGER TRG_UpdateAvailable_OnBorrowApproval
+ON Loans AFTER UPDATE AS
+BEGIN
+    IF UPDATE(status)
+    BEGIN
+        UPDATE Books SET available = available - 1
+        FROM Books INNER JOIN inserted ON Books.id = inserted.book_id
+        INNER JOIN deleted ON deleted.id = inserted.id
+        WHERE inserted.status = 'Borrowing'
+          AND deleted.status <> 'Borrowing';
+    END
 END;
 GO
 
@@ -117,7 +156,9 @@ BEGIN
         UPDATE Books SET available = available + 1
         FROM Books INNER JOIN inserted ON Books.id = inserted.book_id
         INNER JOIN deleted ON deleted.id = inserted.id
-        WHERE inserted.status = 'Returned' AND deleted.status = 'Borrowing';
+                WHERE inserted.status = 'Returned'
+                    AND inserted.return_condition = 'Clean'
+                    AND deleted.status IN ('Borrowing', 'Overdue');
 
         -- Mất sách (Trừ kho)
         UPDATE Books SET quantity = quantity - 1
@@ -125,6 +166,13 @@ BEGIN
         INNER JOIN deleted ON deleted.id = inserted.id
         WHERE inserted.status = 'Lost' AND deleted.status IN ('Borrowing', 'Overdue');
     END
+END;
+GO
+
+-- Add return_condition for existing databases if missing.
+IF COL_LENGTH('dbo.Loans', 'return_condition') IS NULL
+BEGIN
+    ALTER TABLE Loans ADD return_condition NVARCHAR(255) NULL;
 END;
 GO
 

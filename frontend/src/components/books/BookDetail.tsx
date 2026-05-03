@@ -7,8 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { Book } from '../../types';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
-import { BookOpen, Hash, Tag, Info, Check } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { BookOpen, Hash, Info, Check } from 'lucide-react';
 
 interface BookDetailProps {
   book: Book;
@@ -35,24 +34,12 @@ export const BookDetail: React.FC<BookDetailProps> = ({
       try {
         await onBorrow(book);
         setIsSuccess(true);
-        toast.success(`Successfully requested to borrow "${book.title}"!`, {
-          position: 'top-center',
-          duration: 4000,
-          style: {
-            borderRadius: '12px',
-            background: '#10b981',
-            color: '#fff',
-            fontWeight: 'bold',
-          },
-        });
       } catch (error) {
-        toast.error('Failed to request borrow. Please try again.');
         console.error(error);
       }
     }
   };
-
-  const isOutOfStock = book.available === 0;
+  const isOutOfStock = Number(book.available || 0) <= 0;
 
   return (
     <div className="flex flex-col md:flex-row gap-8">
@@ -108,21 +95,19 @@ export const BookDetail: React.FC<BookDetailProps> = ({
 
         <Button
           size="lg"
-          className={`w-full md:w-auto md:px-12 flex items-center gap-2 transition-all duration-300 ${isOutOfStock ? '!bg-slate-300 !text-slate-500 !cursor-not-allowed' : ''}`}
-          variant={isSuccess ? 'success' : 'primary'}
-          disabled={isOutOfStock || isSuccess}
+          className="w-full md:w-auto md:px-12 flex items-center gap-2 transition-all duration-300"
+          variant={isSuccess ? 'secondary' : 'primary'}
+          disabled={isSuccess || isOutOfStock}
           isLoading={isLoading}
           onClick={handleBorrow}
         >
           {isSuccess ? (
             <>
               <Check className="w-5 h-5" />
-              <span>Success</span>
+              <span>Processing</span>
             </>
-          ) : isOutOfStock ? (
-            'Out of Stock'
           ) : (
-            'Borrow Now'
+            'Request'
           )}
         </Button>
       </div>

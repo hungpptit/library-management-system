@@ -7,7 +7,6 @@ import React, { useState } from 'react';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { Mail, Lock, User, Hash } from 'lucide-react';
-import { isEmailRegistered } from '../../services/localService';
 
 interface AuthFormProps {
   type: 'login' | 'register';
@@ -25,6 +24,8 @@ export const AuthForm: React.FC<AuthFormProps> = ({
     password: string;
     displayName: string;
     studentId: string;
+    phone: string;
+    address: string;
   };
 
   type FormErrors = Partial<Record<keyof FormValues, string>>;
@@ -34,6 +35,8 @@ export const AuthForm: React.FC<AuthFormProps> = ({
     password: '',
     displayName: '',
     studentId: '',
+    phone: '',
+    address: '',
   });
   const [errors, setErrors] = useState<FormErrors>({});
 
@@ -43,9 +46,6 @@ export const AuthForm: React.FC<AuthFormProps> = ({
     if (field === 'email') {
       if (!normalized) return 'Please enter your email address.';
       if (!/^\S+@\S+\.\S+$/.test(normalized)) return 'Please enter a valid email address.';
-      if (formType === 'register' && isEmailRegistered(normalized)) {
-        return 'Email already exists. Please use another email.';
-      }
       return undefined;
     }
 
@@ -68,12 +68,23 @@ export const AuthForm: React.FC<AuthFormProps> = ({
       return undefined;
     }
 
+    if (formType === 'register' && field === 'phone') {
+      if (!normalized) return 'Please enter your phone number.';
+      if (!/^\d{9,11}$/.test(normalized)) return 'Phone must be 9-11 digits.';
+      return undefined;
+    }
+
+    if (formType === 'register' && field === 'address') {
+      if (!normalized) return 'Please enter your address.';
+      return undefined;
+    }
+
     return undefined;
   };
 
   const validate = (values: FormValues): FormErrors => {
     const nextErrors: FormErrors = {};
-    (['email', 'password', 'displayName', 'studentId'] as Array<keyof FormValues>).forEach((field) => {
+    (['email', 'password', 'displayName', 'studentId', 'phone', 'address'] as Array<keyof FormValues>).forEach((field) => {
       const error = validateField(field, values[field], type);
       if (error) {
         nextErrors[field] = error;
@@ -123,6 +134,20 @@ export const AuthForm: React.FC<AuthFormProps> = ({
             value={formData.studentId}
             onChange={(e) => updateField('studentId', e.target.value)}
             error={errors.studentId}
+            required
+          />
+          <Input
+            label="Phone"
+            value={formData.phone}
+            onChange={(e) => updateField('phone', e.target.value)}
+            error={errors.phone}
+            required
+          />
+          <Input
+            label="Address"
+            value={formData.address}
+            onChange={(e) => updateField('address', e.target.value)}
+            error={errors.address}
             required
           />
         </>

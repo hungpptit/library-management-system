@@ -21,7 +21,13 @@ export class User {
   address?: string;
 
   @Column({ type: 'nvarchar', length: 20, default: 'reader' })
-  role!: string; // admin, staff, reader
+  role!: string; // admin, reader
+
+  @Column({ type: 'nvarchar', length: 10, default: 'active' })
+  status!: string; // active, deleted
+
+  @Column({ type: 'bigint', nullable: true })
+  card_expiry?: number;
 
   @Column({ type: 'nvarchar', length: 255 })
   password!: string;

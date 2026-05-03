@@ -5,8 +5,9 @@ import {
   registerUser, 
   logoutUser, 
   getCurrentUser, 
-  updateUser 
-} from '../services/localService';
+  updateUser,
+  syncCurrentUserFromApi,
+} from '../services/authService';
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -26,7 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        const currentUser = getCurrentUser();
+        const currentUser = await syncCurrentUserFromApi();
         setUser(currentUser);
       } catch (error) {
         console.error("Auth init error:", error);
@@ -54,7 +55,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   
   const updateProfile = async (data: Partial<UserProfile>) => {
       if (!user) throw new Error("No user logged in");
-      const updated = await updateUser(user.uid, data);
+      if (!user.id) throw new Error('Current user has no backend id');
+      const updated = await updateUser(user.id, data);
       setUser(updated);
   };
 

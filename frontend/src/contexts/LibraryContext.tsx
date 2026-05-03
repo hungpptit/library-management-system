@@ -5,14 +5,25 @@ import {
   subscribeToUserLoans, 
   subscribeToAllLoans, 
   subscribeToAllUsers,
-  requestBorrow,
   returnBook,
   deleteUser,
   registerUser,
   addNewUser,
   updateUser as updateUserService
 } from '../services/localService';
-import { fetchBooksApi, fetchBookByIdApi, searchBooksApi, addBookApi, updateBookApi, deleteBookApi } from '../services/apiService';
+import { 
+  fetchBooksApi, 
+  fetchBookByIdApi, 
+  searchBooksApi, 
+  addBookApi, 
+  updateBookApi, 
+  deleteBookApi,
+  fetchUsersApi,
+  addUserApi,
+  updateUserApi,
+  deleteUserApi
+} from '../services/apiService';
+import { loansService } from '../services/loans.service';
 
 interface LibraryContextType {
   books: Book[];
@@ -89,47 +100,64 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Update logic to call API instead of filter locally
-  const searchBooks = async (keyword: string) => {
+  // Fetch initial users for Admin from API
+  const fetchInitialUsers = useCallback(async () => {
     setIsLoading(true);
     try {
-      const results = await searchBooksApi(keyword);
+      const usersData = await fetchUsersApi();
+      setUsers(usersData);
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Update logic to call API instead of filter locally
+  const searchBooks = useCallback(async (keyword: string) => {
+    const normalizedKeyword = keyword.trim();
+
+    if (!normalizedKeyword) {
+      await fetchInitialBooks();
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const results = await searchBooksApi(normalizedKeyword);
       setBooks(results);
     } catch (error) {
       console.error('Search failed:', error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [fetchInitialBooks]);
 
   // Subscribe to data changes
   useEffect(() => {
+    // Fetch books for all users (public library - guests can see books)
+    fetchInitialBooks();
+    
     if (!user) {
-        setBooks([]);
         setLoans([]);
         setUsers([]);
         return;
     }
-
-    // Load initial books from DB
-    fetchInitialBooks();
     
     // Subscribe to loans based on role
     const unsubLoans = user.role === 'admin' 
       ? subscribeToAllLoans(setLoans) 
       : subscribeToUserLoans(user.uid, setLoans);
     
-    // Subscribe to users if admin
-    let unsubUsers: () => void = () => {};
+    // Fetch users if admin
     if (user.role === 'admin') {
-      unsubUsers = subscribeToAllUsers(setUsers);
+      fetchInitialUsers();
     }
 
     return () => {
       unsubLoans();
-      unsubUsers();
     };
-  }, [user, fetchInitialBooks]);
+  }, [user, fetchInitialBooks, fetchInitialUsers]);
 
   const addNewBook = async (book: Partial<Book>) => {
     setIsLoading(true);
@@ -157,6 +185,12 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     try {
       await deleteBookApi(book.id);
       await fetchInitialBooks(); // Refresh list from DB
+    } catch (error: any) {
+      const backendMessage = error.response?.data?.message;
+      if (backendMessage) {
+        throw new Error(backendMessage);
+      }
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -166,12 +200,17 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     if (!user) return;
     setIsLoading(true);
     try {
-      await requestBorrow(book, user);
-      const currentBook = await fetchBookByIdApi(book.id);
-      if (currentBook) {
-        const nextAvailable = Math.max(0, Number(currentBook.available || 0) - 1);
-        await updateBookApi(currentBook.id, { available: nextAvailable });
+      if (!user.id) {
+        throw new Error('User ID not found. Please login again.');
       }
+
+      const bookId = Number(book.id);
+      if (Number.isNaN(bookId) || bookId <= 0) {
+        throw new Error('Invalid book id');
+      }
+
+      const dueDate = Date.now() + 30 * 24 * 60 * 60 * 1000;
+      await loansService.borrowBook(user.id, bookId, dueDate);
       await fetchInitialBooks();
     } finally {
       setIsLoading(false);
@@ -199,7 +238,18 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   const removeUser = async (targetUser: UserProfile) => {
     setIsLoading(true);
     try {
-      await deleteUser(targetUser.uid);
+      // Use id if available, otherwise fallback to uid
+      const userId = targetUser.id || Number(targetUser.uid);
+      if (!userId) throw new Error("User ID is required");
+      await deleteUserApi(userId);
+      await fetchInitialUsers();
+    } catch (error: any) {
+      // Extract error message from backend response (Axios error)
+      const backendMessage = error.response?.data?.message;
+      if (backendMessage) {
+        throw new Error(backendMessage);
+      }
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -208,8 +258,9 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   const addUser = async (userData: Partial<UserProfile>) => {
       setIsLoading(true);
       try {
-          // Use addNewUser for admin adding users (no password requirement)
-          await addNewUser(userData);
+          // Use addUserApi for DB persistence
+          await addUserApi(userData);
+          await fetchInitialUsers();
       } finally {
           setIsLoading(false);
       }
@@ -218,7 +269,11 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   const updateUser = async (uid: string, userData: Partial<UserProfile>) => {
     setIsLoading(true);
     try {
-      await updateUserService(uid, userData);
+      // If uid is a string from old code, it could be the numeric ID from DB
+      const userId = userData.id || Number(uid);
+      if (!userId) throw new Error("User ID is required");
+      await updateUserApi(userId, userData);
+      await fetchInitialUsers();
     } finally {
       setIsLoading(false);
     }

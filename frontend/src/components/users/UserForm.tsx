@@ -25,6 +25,8 @@ export const UserForm: React.FC<UserFormProps> = ({
     displayName: (initialData as UserProfile).displayName || '',
     studentId: (initialData as UserProfile).studentId || '',
     email: (initialData as UserProfile).email || '',
+    phone: (initialData as UserProfile).phone || '',
+    address: (initialData as UserProfile).address || '',
     role: (initialData as UserProfile).role || 'reader',
   });
 
@@ -49,6 +51,20 @@ export const UserForm: React.FC<UserFormProps> = ({
             value={formData.studentId}
             onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
             placeholder="Enter student ID"
+            required
+          />
+          <Input
+            label="Phone"
+            value={formData.phone}
+            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+            placeholder="Enter phone number"
+            required
+          />
+          <Input
+            label="Address"
+            value={formData.address}
+            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+            placeholder="Enter address"
             required
           />
           <Input

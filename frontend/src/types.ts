@@ -7,6 +7,7 @@ export interface Book {
   id: string;
   title: string;
   author: string;
+  authors?: Array<{ name: string }>;
   isbn: string;
   quantity: number;
   available: number;
@@ -19,14 +20,20 @@ export interface Book {
   publisher?: string;
   price?: number;
   location?: string;
+  pending_count?: number;
 }
 
 export interface UserProfile {
+  id?: number;
   uid: string;
   email: string;
   displayName: string;
   studentId: string;
+  phone?: string;
+  address?: string;
   role: 'admin' | 'reader';
+  status?: 'active' | 'deleted';
+  cardExpiry?: number;
   createdAt: number;
   password?: string;
 }
@@ -40,6 +47,6 @@ export interface Loan {
   issueDate: number;
   dueDate: number;
   returnDate?: number;
-  status: 'Borrowing' | 'Returned' | 'Overdue';
+  status: 'Pending' | 'Borrowing' | 'Returned' | 'Overdue' | 'Lost' | 'Damaged' | 'Cancelled';
   fee: number;
 }
