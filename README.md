@@ -156,7 +156,7 @@
 │   │   └── main.tsx        # Entry point
 │   └── package.json
 ├── init_db.sql             # Database schema & seed data
-├── package.json            # Root package
+├── package.json            # Root workspace manager
 └── README.md              # This file
 ```
 
@@ -180,17 +180,17 @@ cd "He Thong Quan Li Thu Vien"
 
 #### Bước 2: Cài Đặt Dependencies
 
-**Backend:**
+**Tại root repository:**
 ```bash
-cd backend
 npm install
 ```
 
-**Frontend:**
+Lệnh này sẽ cài dependencies cho cả hai workspace `backend/` và `frontend/`.
+
+**Chạy riêng từng phần:**
 ```bash
-cd ../frontend
-npm install
-cd ..
+npm run dev:backend
+npm run dev:frontend
 ```
 
 #### Bước 3: Cấu Hình Database
@@ -230,17 +230,17 @@ VITE_API_URL=http://localhost:3000/api
 
 #### Bước 5: Chạy Ứng Dụng
 
+Mở 2 terminal từ thư mục gốc và chạy:
+
 **Terminal 1 - Backend:**
 ```bash
-cd backend
-npm run start:dev
+npm run dev:backend
 # Server chạy tại http://localhost:3000
 ```
 
 **Terminal 2 - Frontend:**
 ```bash
-cd frontend
-npm run dev
+npm run dev:frontend
 # Ứng dụng chạy tại http://localhost:5173
 ```
 
