@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Put, Delete, Query, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, ParseIntPipe } from '@nestjs/common';
 import { LoansService } from './loans.service';
 import { CreateLoanDto } from './dto/create-loan.dto';
 import { UpdateLoanDto } from './dto/update-loan.dto';
@@ -13,9 +13,8 @@ export class LoansController {
   }
 
   @Get()
-  findAll(@Query('readerId') readerId?: string) {
-    const userId = readerId ? Number(readerId) : undefined;
-    return this.loansService.findAll(userId);
+  findAll() {
+    return this.loansService.findAll();
   }
 
   @Get('my-active-loans/:userId')

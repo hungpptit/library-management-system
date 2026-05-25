@@ -5,6 +5,13 @@ import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
 import { BooksModule } from './books/books.module';
 import { LoansModule } from './loans/loans.module';
+// Seed errors (test-only)
+let SeedModule: any = undefined;
+if (process.env.SEED_ERRORS === 'true') {
+  // Lazy require so production without the module is unaffected
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  SeedModule = require('./seed/seed.module').SeedModule;
+}
 
 @Module({
   imports: [
@@ -13,7 +20,7 @@ import { LoansModule } from './loans/loans.module';
       host: 'localhost',
       port: 1433,
       username: 'sa',
-      password: '123',
+      password: '12345',
       database: 'LMS',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: false,
@@ -24,6 +31,7 @@ import { LoansModule } from './loans/loans.module';
     UsersModule,
     BooksModule,
     LoansModule,
+    ...(SeedModule ? [SeedModule] : []),
   ],
   controllers: [AppController],
   providers: [AppService],

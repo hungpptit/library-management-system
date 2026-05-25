@@ -1,0 +1,47 @@
+[
+  {
+    "id": "S001",
+    "route": "/loans",
+    "method": "POST",
+    "type": "error",
+    "message": "Seeded error: loan creation failed",
+    "probability": 0.5,
+    "severity": "major"
+  },
+  {
+    "id": "S002",
+    "route": "/loans/.*return",
+    "method": "POST",
+    "type": "error",
+    "message": "Seeded error: return processing bug",
+    "probability": 0.4,
+    "severity": "major"
+  },
+  {
+    "id": "S003",
+    "route": "/books/.*",
+    "method": "GET",
+    "type": "error",
+    "message": "Seeded error: book availability mismatch",
+    "probability": 0.3,
+    "severity": "minor"
+  },
+  {
+    "id": "S004",
+    "route": "/users/.*",
+    "method": "PUT",
+    "type": "error",
+    "message": "Seeded error: user update validation",
+    "probability": 0.25,
+    "severity": "minor"
+  },
+  {
+    "id": "S005",
+    "route": "/books/checkout",
+    "method": "POST",
+    "type": "error",
+    "message": "Seeded error: checkout concurrency",
+    "probability": 0.2,
+    "severity": "critical"
+  }
+]
