@@ -34,6 +34,8 @@ export class UsersService {
     const studentId = (userData.student_id || userData.studentId || '').trim();
     const password = (userData.password || '').trim();
     const role = this.normalizeRole(userData.role);
+    const phone = (userData.phone || '').trim();
+    const address = (userData.address || '').trim();
     const now = Date.now();
     const defaultCardExpiry = now + 365 * 24 * 60 * 60 * 1000;
     const cardExpiryInput = Number(
@@ -47,15 +49,25 @@ export class UsersService {
       throw new BadRequestException('Email, display name and password are required');
     }
 
+
     const existingUser = await this.userRepository.findOne({ where: { email } });
     if (existingUser) {
       throw new BadRequestException('Email already exists');
+    }
+
+    if (studentId) {
+      const existingStudent = await this.userRepository.findOne({ where: { student_id: studentId } });
+      if (existingStudent) {
+        throw new BadRequestException('Student ID already exists');
+      }
     }
 
     const user = this.userRepository.create({
       email,
       display_name: displayName,
       student_id: studentId || undefined,
+      phone: phone || undefined,
+      address: address || undefined,
       password,
       role,
       status: 'active',
@@ -131,6 +143,13 @@ export class UsersService {
 
     if (userData.student_id || userData.studentId) {
       user.student_id = String(userData.student_id || userData.studentId).trim();
+    }
+
+    if (userData.phone !== undefined) {
+      user.phone = String(userData.phone).trim();
+    }
+    if (userData.address !== undefined) {
+      user.address = String(userData.address).trim();
     }
 
     if (userData.password) {
