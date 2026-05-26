@@ -1,11 +1,13 @@
 import axios from 'axios';
-import { Book } from '../types';
+import { Book, UserProfile } from '../types';
 
-const API_BASE_URL = 'http://localhost:3001'; // Update to match common NestJS or your specific dev port
+const API_BASE_URL = 'http://localhost:3001/api'; // Backend with /api global prefix
 
 const apiInstance = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true,
 });
+
 
 export const fetchBooksApi = async (): Promise<Book[]> => {
   try {

@@ -1,0 +1,385 @@
+{
+  "info": {
+    "name": "Library API Test",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "API-001. Tìm kiếm sách (Positive)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Contains Gatsby', function () {",
+              "    pm.expect(pm.response.text()).to.include('Gatsby');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3001/api/books/search?keyword=Gatsby",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "api",
+            "books",
+            "search"
+          ],
+          "query": [
+            {
+              "key": "keyword",
+              "value": "Gatsby"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "API-002. Mượn sách vượt hạn ngạch (Negative)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "pm.test('Contains error message', function () {",
+              "    var text = pm.response.text();",
+              "    pm.expect(text.includes('giới hạn') || text.includes('overdue') || text.includes('Overdue')).to.be.true;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": 1,\n  \"bookId\": 1,\n  \"dueDate\": 1750000000000\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3001/api/loans/borrow",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "api",
+            "loans",
+            "borrow"
+          ]
+        }
+      }
+    },
+    {
+      "name": "API-003. Xử lý trả sách (Positive)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Contains Returned', function () {",
+              "    pm.expect(pm.response.text()).to.include('Returned');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3001/api/loans/11/return",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "api",
+            "loans",
+            "11",
+            "return"
+          ]
+        }
+      }
+    },
+    {
+      "name": "API-004. Thêm sách mới (Positive)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "pm.test('Contains book title', function () {",
+              "    pm.expect(pm.response.text()).to.include('Head First Design Patterns');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Head First Design Patterns\",\n  \"isbn\": \"978-0596007126\",\n  \"author\": \"Eric Freeman\",\n  \"genre\": \"Programming\",\n  \"publisher\": \"O'Reilly Media\",\n  \"quantity\": 3,\n  \"price\": 45.99,\n  \"year\": 2004,\n  \"location\": \"Shelf P-01\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3001/api/books",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "api",
+            "books"
+          ]
+        }
+      }
+    },
+    {
+      "name": "API-005. Cập nhật thông tin sách (Positive)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Contains Updated Edition', function () {",
+              "    pm.expect(pm.response.text()).to.include('Updated Edition');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"The Great Gatsby (Updated Edition)\",\n  \"isbn\": \"978-0743273565\",\n  \"price\": 19.99\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3001/api/books/1",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "api",
+            "books",
+            "1"
+          ]
+        }
+      }
+    },
+    {
+      "name": "API-006. Xóa mềm sách (Gray-box)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3001/api/books/38",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "api",
+            "books",
+            "38"
+          ]
+        }
+      }
+    },
+    {
+      "name": "API-007. Lấy danh sách độc giả (Positive)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Contains email field', function () {",
+              "    pm.expect(pm.response.text()).to.include('email');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3001/api/users",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "api",
+            "users"
+          ]
+        }
+      }
+    },
+    {
+      "name": "API-008. Cập nhật hồ sơ độc giả (Negative)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "pm.test('Contains validation error', function () {",
+              "    pm.expect(pm.response.text()).to.include('Status must be active or deleted');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"invalid_status_value\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3001/api/users/7",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "api",
+            "users",
+            "7"
+          ]
+        }
+      }
+    },
+    {
+      "name": "API-009. Vô hiệu hóa tài khoản (Positive)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Contains deleted status', function () {",
+              "    pm.expect(pm.response.text()).to.include('deleted');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"deleted\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3001/api/users/8",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "api",
+            "users",
+            "8"
+          ]
+        }
+      }
+    }
+  ]
+}

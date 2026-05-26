@@ -1,6 +1,8 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DataSource } from 'typeorm';
+import * as bcrypt from 'bcryptjs';
+import { User } from './users/user.entity';
 
 async function ensureUsersSchema(dataSource: DataSource) {
   await dataSource.query(`
@@ -138,11 +140,26 @@ async function ensureLoansSchema(dataSource: DataSource) {
   `);
 }
 
+async function ensureHashedPasswords(dataSource: DataSource) {
+  const userRepository = dataSource.getRepository(User);
+  const users = await userRepository.find();
+  for (const user of users) {
+    if (user.password && !user.password.startsWith('$2a$') && !user.password.startsWith('$2b$')) {
+      const hashedPassword = await bcrypt.hash(user.password, 10);
+      user.password = hashedPassword;
+      await userRepository.save(user);
+      console.log(`Auto-hashed password for user: ${user.email}`);
+    }
+  }
+}
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  // Set global prefix for all API routes
+  app.setGlobalPrefix('api');
   // Enable CORS for frontend communication
   app.enableCors({
-    origin: '*', // Allow all origins for development to avoid port mismatch
+    origin: 'http://localhost:3000', // Specify explicit origin for credentials
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
@@ -151,8 +168,9 @@ async function bootstrap() {
     const dataSource = app.get(DataSource);
     await ensureUsersSchema(dataSource);
     await ensureLoansSchema(dataSource);
+    await ensureHashedPasswords(dataSource);
   } catch (error) {
-    console.error('Failed to auto-fix schema:', error);
+    console.error('Failed to auto-fix schema or migrate passwords:', error);
   }
 
   await app.listen(3001);

@@ -7,7 +7,9 @@ import {
   ParseIntPipe,
   Post,
   Put,
+  Res,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { UsersService } from './users.service';
 
 @Controller('users')
@@ -20,8 +22,30 @@ export class UsersController {
   }
 
   @Post('login')
-  login(@Body() loginData: { email: string; password: string }) {
-    return this.usersService.login(loginData);
+  async login(
+    @Body() loginData: { email: string; password: string },
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const result = await this.usersService.login(loginData);
+    response.cookie('access_token', result.access_token, {
+      httpOnly: true,
+      secure: false, // Set to true if HTTPS
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/',
+    });
+    return result.user;
+  }
+
+  @Post('logout')
+  logout(@Res({ passthrough: true }) response: Response) {
+    response.clearCookie('access_token', {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      path: '/',
+    });
+    return { success: true };
   }
 
   @Get()
