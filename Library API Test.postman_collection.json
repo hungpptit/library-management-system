@@ -1,7 +1,10 @@
 {
   "info": {
+    "_postman_id": "3eeaa409-6809-4802-9ce2-221466b539e2",
     "name": "Library API Test",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "55174131",
+    "_collection_link": "https://go.postman.co/collection/55174131-3eeaa409-6809-4802-9ce2-221466b539e2?source=collection_link"
   },
   "item": [
     {
@@ -50,7 +53,8 @@
             "login"
           ]
         }
-      }
+      },
+      "response": []
     },
     {
       "name": "API-001. Tìm kiếm sách (Positive)",
@@ -92,7 +96,8 @@
             }
           ]
         }
-      }
+      },
+      "response": []
     },
     {
       "name": "API-002. Mượn sách vượt hạn ngạch (Negative)",
@@ -206,7 +211,8 @@
             "borrow"
           ]
         }
-      }
+      },
+      "response": []
     },
     {
       "name": "API-003. Xử lý trả sách (Positive)",
@@ -243,7 +249,8 @@
             "return"
           ]
         }
-      }
+      },
+      "response": []
     },
     {
       "name": "API-004. Thêm sách mới (Positive)",
@@ -305,7 +312,8 @@
             "books"
           ]
         }
-      }
+      },
+      "response": []
     },
     {
       "name": "API-005. Cập nhật thông tin sách (Positive)",
@@ -356,7 +364,8 @@
             "1"
           ]
         }
-      }
+      },
+      "response": []
     },
     {
       "name": "API-006. Xóa mềm sách (Gray-box)",
@@ -395,7 +404,8 @@
             "{{created_book_id}}"
           ]
         }
-      }
+      },
+      "response": []
     },
     {
       "name": "API-007. Lấy danh sách độc giả (Positive)",
@@ -430,7 +440,8 @@
             "users"
           ]
         }
-      }
+      },
+      "response": []
     },
     {
       "name": "API-007b. Tạo độc giả test (Pre-requisite)",
@@ -484,7 +495,8 @@
             "users"
           ]
         }
-      }
+      },
+      "response": []
     },
     {
       "name": "API-008. Cập nhật hồ sơ độc giả (Negative)",
@@ -530,7 +542,8 @@
             "{{created_user_id}}"
           ]
         }
-      }
+      },
+      "response": []
     },
     {
       "name": "API-009. Vô hiệu hóa tài khoản (Positive)",
@@ -576,7 +589,8 @@
             "{{created_user_id}}"
           ]
         }
-      }
+      },
+      "response": []
     }
   ],
   "variable": [

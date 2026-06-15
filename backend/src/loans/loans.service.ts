@@ -218,19 +218,6 @@ export class LoansService {
       );
     }
 
-    const currentBorrowingLoan = await this.loanRepository.findOne({
-      where: {
-        book_id: loan.book_id,
-        status: In(['Borrowing', 'Overdue']),
-      },
-    });
-
-    if (currentBorrowingLoan) {
-      throw new BadRequestException(
-        'Sách đã được người khác mượn trong lúc chờ duyệt. Vui lòng thử lại hoặc hủy yêu cầu.',
-      );
-    }
-
     loan.status = 'Borrowing';
     loan.issue_date = Date.now();
     return this.loanRepository.save(loan);

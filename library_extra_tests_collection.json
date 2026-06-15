@@ -1,0 +1,299 @@
+{
+  "info": {
+    "name": "Library Extra API Tests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "API-000. Đăng nhập Admin (Pre-requisite)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200 or 201', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+              "});",
+              "pm.test('Contains access_token cookie', function () {",
+              "    var token = pm.cookies.get('access_token');",
+              "    pm.expect(token).to.not.be.undefined;",
+              "    pm.collectionVariables.set('admin_token', token);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"admin@library.com\",\n  \"password\": \"123\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3001/api/users/login",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "api",
+            "users",
+            "login"
+          ]
+        }
+      }
+    },
+    {
+      "name": "API-Ex01. Thêm sách Negative (Trùng ISBN)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const sendPromise = (req) => new Promise((resolve, reject) => {",
+              "    pm.sendRequest(req, (err, res) => {",
+              "        if (err) reject(err);",
+              "        else resolve(res);",
+              "    });",
+              "});",
+              "",
+              "(async () => {",
+              "    try {",
+              "        const booksRes = await sendPromise({",
+              "            url: 'http://localhost:3001/api/books',",
+              "            method: 'GET'",
+              "        });",
+              "        const books = booksRes.json();",
+              "        if (books && books.length > 0) {",
+              "            pm.collectionVariables.set('existing_book_isbn', books[0].isbn);",
+              "        } else {",
+              "            await sendPromise({",
+              "                url: 'http://localhost:3001/api/books',",
+              "                method: 'POST',",
+              "                header: {",
+              "                    'Content-Type': 'application/json',",
+              "                    'Authorization': 'Bearer ' + pm.collectionVariables.get('admin_token')",
+              "                },",
+              "                body: {",
+              "                    mode: 'raw',",
+              "                    raw: JSON.stringify({",
+              "                        title: 'Temporary Book for ISBN Duplicate Test',",
+              "                        isbn: '978-0000000001',",
+              "                        quantity: 1",
+              "                    })",
+              "                }",
+              "            });",
+              "            pm.collectionVariables.set('existing_book_isbn', '978-0000000001');",
+              "        }",
+              "    } catch (e) {",
+              "        console.error('Error in Ex01 pre-request:', e);",
+              "    }",
+              "})();"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 409', function () {",
+              "    pm.response.to.have.status(409);",
+              "});",
+              "pm.test('Contains ISBN conflict error message', function () {",
+              "    var text = pm.response.text();",
+              "    pm.expect(text.includes('already exists') || text.includes('CONFLICT_ISBN')).to.be.true;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Duplicate ISBN Book Test\",\n  \"isbn\": \"{{existing_book_isbn}}\",\n  \"author\": \"Test Author\",\n  \"genre\": \"Test Genre\",\n  \"quantity\": 1\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3001/api/books",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "api",
+            "books"
+          ]
+        }
+      }
+    },
+    {
+      "name": "API-Ex02. Xóa mềm sách đang có người mượn (ISBN 978-04463)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const sendPromise = (req) => new Promise((resolve, reject) => {",
+              "    pm.sendRequest(req, (err, res) => {",
+              "        if (err) reject(err);",
+              "        else resolve(res);",
+              "    });",
+              "});",
+              "",
+              "(async () => {",
+              "    const targetIsbn = '978-04463';",
+              "    try {",
+              "        let bookId = null;",
+              "        ",
+              "        try {",
+              "            const isbnRes = await sendPromise({",
+              "                url: 'http://localhost:3001/api/books/isbn/' + targetIsbn,",
+              "                method: 'GET'",
+              "            });",
+              "            if (isbnRes.code === 200) {",
+              "                bookId = isbnRes.json().id;",
+              "            }",
+              "        } catch (e) {",
+              "            // Book not found",
+              "        }",
+              "        ",
+              "        if (!bookId) {",
+              "            const createRes = await sendPromise({",
+              "                url: 'http://localhost:3001/api/books',",
+              "                method: 'POST',",
+              "                header: {",
+              "                    'Content-Type': 'application/json',",
+              "                    'Authorization': 'Bearer ' + pm.collectionVariables.get('admin_token')",
+              "                },",
+              "                body: {",
+              "                    mode: 'raw',",
+              "                    raw: JSON.stringify({",
+              "                        title: 'Target Book 978-04463',",
+              "                        isbn: targetIsbn,",
+              "                        quantity: 1",
+              "                    })",
+              "                }",
+              "            });",
+              "            bookId = createRes.json().id;",
+              "        }",
+              "        ",
+              "        const uniqueId = Date.now();",
+              "        const userRes = await sendPromise({",
+              "            url: 'http://localhost:3001/api/users',",
+              "            method: 'POST',",
+              "            header: { 'Content-Type': 'application/json' },",
+              "            body: {",
+              "                mode: 'raw',",
+              "                raw: JSON.stringify({",
+              "                    email: 'borrower_ex_' + uniqueId + '@library.com',",
+              "                    displayName: 'Borrower Extra Test',",
+              "                    password: '123',",
+              "                    role: 'reader'",
+              "                })",
+              "            }",
+              "        });",
+              "        const userId = userRes.json().id;",
+              "        ",
+              "        await sendPromise({",
+              "            url: 'http://localhost:3001/api/loans/borrow',",
+              "            method: 'POST',",
+              "            header: { 'Content-Type': 'application/json' },",
+              "            body: {",
+              "                mode: 'raw',",
+              "                raw: JSON.stringify({",
+              "                    userId: userId,",
+              "                    bookId: bookId,",
+              "                    dueDate: Date.now() + 7 * 24 * 60 * 60 * 1000",
+              "                })",
+              "            }",
+              "        });",
+              "        ",
+              "        pm.collectionVariables.set('borrowed_book_id', bookId);",
+              "    } catch (e) {",
+              "        console.error('Error in Ex02 pre-request:', e);",
+              "    }",
+              "})();"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "pm.test('Contains borrowing constraint message', function () {",
+              "    var text = pm.response.text();",
+              "    pm.expect(text.includes('currently being borrowed') || text.includes('borrowed')).to.be.true;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:3001/api/books/{{borrowed_book_id}}",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "api",
+            "books",
+            "{{borrowed_book_id}}"
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "admin_token",
+      "value": ""
+    },
+    {
+      "key": "existing_book_isbn",
+      "value": ""
+    },
+    {
+      "key": "borrowed_book_id",
+      "value": ""
+    }
+  ]
+}
