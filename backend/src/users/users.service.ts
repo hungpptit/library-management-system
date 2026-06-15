@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcryptjs';
 import { User } from './user.entity';
 
 @Injectable()
@@ -13,6 +15,7 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly jwtService: JwtService,
   ) {}
 
   private sanitizeUser(user: User) {
@@ -62,13 +65,14 @@ export class UsersService {
       }
     }
 
+    const hashedPassword = await bcrypt.hash(password, 10);
     const user = this.userRepository.create({
       email,
       display_name: displayName,
       student_id: studentId || undefined,
       phone: phone || undefined,
       address: address || undefined,
-      password,
+      password: hashedPassword,
       role,
       status: 'active',
       created_at: now,
@@ -93,11 +97,18 @@ export class UsersService {
         status: 'active'
       } 
     });
-    if (!user || user.password !== password) {
+    if (!user || !(await bcrypt.compare(password, user.password))) {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    return this.sanitizeUser(user);
+    const sanitized = this.sanitizeUser(user);
+    const payload = { sub: user.id, email: user.email, role: user.role };
+    const accessToken = await this.jwtService.signAsync(payload);
+
+    return {
+      access_token: accessToken,
+      user: sanitized,
+    };
   }
 
   async findAll() {
@@ -153,7 +164,7 @@ export class UsersService {
     }
 
     if (userData.password) {
-      user.password = String(userData.password).trim();
+      user.password = await bcrypt.hash(String(userData.password).trim(), 10);
     }
 
     if (userData.role) {

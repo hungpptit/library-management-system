@@ -1,6 +1,8 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DataSource } from 'typeorm';
+import * as bcrypt from 'bcryptjs';
+import { User } from './users/user.entity';
 
 async function ensureUsersSchema(dataSource: DataSource) {
   await dataSource.query(`
@@ -140,9 +142,11 @@ async function ensureLoansSchema(dataSource: DataSource) {
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  // Set global prefix for all API routes
+  app.setGlobalPrefix('api');
   // Enable CORS for frontend communication
   app.enableCors({
-    origin: '*', // Allow all origins for development to avoid port mismatch
+    origin: 'http://localhost:3000', // Specify explicit origin for credentials
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
