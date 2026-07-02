@@ -140,6 +140,39 @@ async function ensureLoansSchema(dataSource: DataSource) {
   `);
 }
 
+async function seedDatabase(dataSource: DataSource) {
+  try {
+    const userRepo = dataSource.getRepository(User);
+    const count = await userRepo.count();
+    if (count === 0) {
+      const adminEmail = process.env.ADMIN_EMAIL;
+      const adminPassword = process.env.ADMIN_PASSWORD;
+
+      if (adminEmail && adminPassword) {
+        console.log('Seeding default admin from environment variables...');
+        const hashedPassword = await bcrypt.hash(adminPassword, 10);
+        const now = Date.now();
+        const oneYear = 365 * 24 * 60 * 60 * 1000;
+
+        await userRepo.save({
+          email: adminEmail.trim().toLowerCase(),
+          display_name: 'Administrator',
+          role: 'admin',
+          password: hashedPassword,
+          created_at: now,
+          card_expiry: now + oneYear,
+          status: 'active',
+        });
+        console.log('Default admin seeded successfully.');
+      } else {
+        console.log('Skipping admin seeding (ADMIN_EMAIL or ADMIN_PASSWORD not set).');
+      }
+    }
+  } catch (error) {
+    console.error('Failed to seed default admin:', error);
+  }
+}
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api');
@@ -150,14 +183,16 @@ async function bootstrap() {
   });
 
   try {
+    const dataSource = app.get(DataSource);
     const dbType = process.env.DB_TYPE || 'mssql';
     if (dbType === 'mssql') {
-      const dataSource = app.get(DataSource);
       await ensureUsersSchema(dataSource);
       await ensureLoansSchema(dataSource);
     }
+    // Seed default admin if config is provided
+    await seedDatabase(dataSource);
   } catch (error) {
-    console.error('Failed to auto-fix schema:', error);
+    console.error('Failed to auto-fix schema or seed database:', error);
   }
 
   const port = process.env.PORT || 3001;
