@@ -142,23 +142,25 @@ async function ensureLoansSchema(dataSource: DataSource) {
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  // Set global prefix for all API routes
   app.setGlobalPrefix('api');
-  // Enable CORS for frontend communication
   app.enableCors({
-    origin: 'http://localhost:3000', // Specify explicit origin for credentials
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000', // Specify dynamic origin or localhost for credentials
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
 
   try {
-    const dataSource = app.get(DataSource);
-    await ensureUsersSchema(dataSource);
-    await ensureLoansSchema(dataSource);
+    const dbType = process.env.DB_TYPE || 'mssql';
+    if (dbType === 'mssql') {
+      const dataSource = app.get(DataSource);
+      await ensureUsersSchema(dataSource);
+      await ensureLoansSchema(dataSource);
+    }
   } catch (error) {
     console.error('Failed to auto-fix schema:', error);
   }
 
-  await app.listen(3001);
+  const port = process.env.PORT || 3001;
+  await app.listen(port, '0.0.0.0');
 }
 bootstrap();

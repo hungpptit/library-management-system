@@ -27,10 +27,11 @@ export class UsersController {
     @Res({ passthrough: true }) response: Response,
   ) {
     const result = await this.usersService.login(loginData);
+    const isProduction = process.env.NODE_ENV === 'production';
     response.cookie('access_token', result.access_token, {
       httpOnly: true,
-      secure: false, // Set to true if HTTPS
-      sameSite: 'lax',
+      secure: isProduction, // Set to true if HTTPS (production)
+      sameSite: isProduction ? 'none' : 'lax', // 'none' allows cross-domain cookies in production
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       path: '/',
     });
@@ -39,10 +40,11 @@ export class UsersController {
 
   @Post('logout')
   logout(@Res({ passthrough: true }) response: Response) {
+    const isProduction = process.env.NODE_ENV === 'production';
     response.clearCookie('access_token', {
       httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
       path: '/',
     });
     return { success: true };

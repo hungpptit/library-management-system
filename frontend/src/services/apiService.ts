@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { Book, UserProfile } from '../types';
 
-const API_BASE_URL = 'http://localhost:3001/api'; // Backend with /api global prefix
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api'; // Backend with /api global prefix
 
 const apiInstance = axios.create({
   baseURL: API_BASE_URL,
