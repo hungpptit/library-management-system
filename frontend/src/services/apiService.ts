@@ -12,7 +12,10 @@ const apiInstance = axios.create({
 export const fetchBooksApi = async (): Promise<Book[]> => {
   try {
     const response = await apiInstance.get('/books');
-    return response.data;
+    return response.data.map((book: any) => ({
+      ...book,
+      price: book.price ? Number(book.price) : 0,
+    }));
   } catch (error) {
     console.error('Error fetching books from API:', error);
     return [];
@@ -22,7 +25,11 @@ export const fetchBooksApi = async (): Promise<Book[]> => {
 export const fetchBookByIdApi = async (id: string | number): Promise<Book | null> => {
   try {
     const response = await apiInstance.get(`/books/${id}`);
-    return response.data;
+    const book = response.data;
+    if (book) {
+      book.price = book.price ? Number(book.price) : 0;
+    }
+    return book;
   } catch (error) {
     console.error('Error fetching book by id from API:', error);
     return null;
@@ -34,7 +41,10 @@ export const searchBooksApi = async (keyword: string): Promise<Book[]> => {
     const response = await apiInstance.get('/books/search', {
       params: { keyword },
     });
-    return response.data;
+    return response.data.map((book: any) => ({
+      ...book,
+      price: book.price ? Number(book.price) : 0,
+    }));
   } catch (error) {
     console.error('Error searching books from API:', error);
     return [];
@@ -44,7 +54,11 @@ export const searchBooksApi = async (keyword: string): Promise<Book[]> => {
 export const checkIsbnApi = async (isbn: string): Promise<Book | null> => {
   try {
     const response = await apiInstance.get(`/books/isbn/${isbn}`);
-    return response.data;
+    const book = response.data;
+    if (book) {
+      book.price = book.price ? Number(book.price) : 0;
+    }
+    return book;
   } catch (error: any) {
     if (error.response?.status === 404) {
       return null;
@@ -56,12 +70,20 @@ export const checkIsbnApi = async (isbn: string): Promise<Book | null> => {
 
 export const addBookApi = async (book: Partial<Book>): Promise<Book> => {
   const response = await apiInstance.post('/books', book);
-  return response.data;
+  const returnedBook = response.data;
+  if (returnedBook) {
+    returnedBook.price = returnedBook.price ? Number(returnedBook.price) : 0;
+  }
+  return returnedBook;
 };
 
 export const updateBookApi = async (id: string | number, book: Partial<Book>): Promise<Book> => {
   const response = await apiInstance.put(`/books/${id}`, book);
-  return response.data;
+  const returnedBook = response.data;
+  if (returnedBook) {
+    returnedBook.price = returnedBook.price ? Number(returnedBook.price) : 0;
+  }
+  return returnedBook;
 };
 
 export const deleteBookApi = async (id: string | number): Promise<void> => {
