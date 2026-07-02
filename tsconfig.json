@@ -1,5 +1,17 @@
 {
-  "files": [],
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es2020",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
+    "jsx": "react-jsx"
+  },
+  "include": [
+    "backend/src/**/*",
+    "frontend/src/**/*"
+  ],
   "exclude": [
     "node_modules",
     "**/node_modules",
