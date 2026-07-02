@@ -184,7 +184,11 @@ export const BookCard: React.FC<BookCardProps> = ({
                   <DollarSign className="w-4 h-4 text-sky-400" />
                   <div className="flex flex-col">
                     <span className="text-[10px] uppercase font-bold text-slate-400 leading-none">Price</span>
-                    <span className="text-sm font-medium">${book.price?.toFixed(2) || 'N/A'}</span>
+                    <span className="text-sm font-medium">
+                      {book.price !== undefined && book.price !== null
+                        ? `$${Number(book.price).toFixed(2)}`
+                        : 'N/A'}
+                    </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 text-slate-600">
