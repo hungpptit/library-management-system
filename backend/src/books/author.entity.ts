@@ -5,10 +5,10 @@ export class Author {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'nvarchar', length: 100 })
+  @Column({ length: 100 })
   name: string;
 
-  @Column({ type: 'nvarchar', length: 'MAX', nullable: true })
+  @Column({ type: 'text', nullable: true })
   bio: string;
 
   @Column({ type: 'bigint' })

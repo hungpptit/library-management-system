@@ -6,10 +6,10 @@ export class Category {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'nvarchar', length: 100 })
+  @Column({ length: 100 })
   name: string;
 
-  @Column({ type: 'nvarchar', length: 50, nullable: true })
+  @Column({ length: 50, nullable: true })
   location_area: string;
 
   @Column({ type: 'bigint' })

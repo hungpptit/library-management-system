@@ -16,10 +16,10 @@ export class FineLog {
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   fine_amount!: number;
 
-  @Column({ type: 'nvarchar', length: 255, nullable: true })
+  @Column({ length: 255, nullable: true })
   reason?: string;
 
-  @Column({ type: 'nvarchar', length: 20, default: 'Pending' })
+  @Column({ length: 20, default: 'Pending' })
   status!: string; // Pending, Paid
 
   @Column({ type: 'bigint' })

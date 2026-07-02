@@ -6,13 +6,13 @@ export class Publisher {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'nvarchar', length: 100 })
+  @Column({ length: 100 })
   name: string;
 
-  @Column({ type: 'nvarchar', length: 255, nullable: true })
+  @Column({ length: 255, nullable: true })
   address: string;
 
-  @Column({ type: 'nvarchar', length: 20, nullable: true })
+  @Column({ length: 20, nullable: true })
   phone: string;
 
   @Column({ type: 'bigint', nullable: true })

@@ -30,10 +30,10 @@ export class Loan {
   @Column({ type: 'bigint', nullable: true })
   return_date?: number;
 
-  @Column({ type: 'nvarchar', length: 20, default: 'Pending' })
+  @Column({ length: 20, default: 'Pending' })
   status!: string; // Pending, Borrowing, Returned, Overdue, Lost, Damaged, Cancelled
 
-  @Column({ type: 'nvarchar', length: 255, nullable: true })
+  @Column({ length: 255, nullable: true })
   return_condition?: string; // Clean, Damaged, Lost
 
   @OneToMany('FineLog', 'loan')

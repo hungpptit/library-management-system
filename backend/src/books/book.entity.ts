@@ -8,10 +8,10 @@ export class Book {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'nvarchar', length: 255 })
+  @Column({ length: 255 })
   title: string;
 
-  @Column({ type: 'nvarchar', length: 20, nullable: true })
+  @Column({ length: 20, nullable: true })
   isbn: string;
 
   @Column({ nullable: true })
@@ -37,16 +37,16 @@ export class Book {
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
   price: number;
 
-  @Column({ type: 'nvarchar', length: 'MAX', nullable: true })
+  @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ type: 'nvarchar', length: 500, nullable: true })
+  @Column({ length: 500, nullable: true })
   cover_url: string;
 
   @Column({ type: 'int', nullable: true })
   year: number;
 
-  @Column({ type: 'nvarchar', length: 50, nullable: true })
+  @Column({ length: 50, nullable: true })
   location: string;
 
   @Column({ type: 'bigint' })
