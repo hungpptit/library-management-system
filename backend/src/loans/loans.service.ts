@@ -29,7 +29,7 @@ export class LoansService {
     private readonly bookRepository: Repository<Book>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-  ) {}
+  ) { }
 
   private async syncOverdueStatuses(options?: {
     readerId?: number;
@@ -93,7 +93,17 @@ export class LoansService {
       ...createLoanDto,
       status: createLoanDto.status || 'Pending',
     });
-    return this.loanRepository.save(loan);
+    const saved = await this.loanRepository.save(loan);
+
+    const dbType = process.env.DB_TYPE || 'mssql';
+    if (dbType !== 'mssql' && saved.status === 'Borrowing') {
+      const book = await this.bookRepository.findOne({ where: { id: saved.book_id } });
+      if (book) {
+        book.available = Math.max(0, Number(book.available || 0) - 1);
+        await this.bookRepository.save(book);
+      }
+    }
+    return saved;
   }
 
   async findAll(): Promise<Loan[]> {
@@ -218,21 +228,15 @@ export class LoansService {
       );
     }
 
-    const currentBorrowingLoan = await this.loanRepository.findOne({
-      where: {
-        book_id: loan.book_id,
-        status: In(['Borrowing', 'Overdue']),
-      },
-    });
-
-    if (currentBorrowingLoan) {
-      throw new BadRequestException(
-        'Sách đã được người khác mượn trong lúc chờ duyệt. Vui lòng thử lại hoặc hủy yêu cầu.',
-      );
-    }
-
     loan.status = 'Borrowing';
     loan.issue_date = Date.now();
+
+    const dbType = process.env.DB_TYPE || 'mssql';
+    if (dbType !== 'mssql') {
+      book.available = Math.max(0, Number(book.available || 0) - 1);
+      await this.bookRepository.save(book);
+    }
+
     return this.loanRepository.save(loan);
   }
 
@@ -257,7 +261,17 @@ export class LoansService {
     loan.return_date = Date.now();
     loan.status = 'Returned';
     loan.return_condition = 'Clean';
-    return this.loanRepository.save(loan);
+    const saved = await this.loanRepository.save(loan);
+
+    const dbType = process.env.DB_TYPE || 'mssql';
+    if (dbType !== 'mssql') {
+      const book = await this.bookRepository.findOne({ where: { id: loan.book_id } });
+      if (book) {
+        book.available = Number(book.available || 0) + 1;
+        await this.bookRepository.save(book);
+      }
+    }
+    return saved;
   }
 
   async getActiveLoans(userId: number): Promise<Loan[]> {
@@ -333,13 +347,22 @@ export class LoansService {
   async confirmReturnClean(
     loanId: number,
   ): Promise<{ success: boolean; message: string; loan: Loan }> {
-    await this.searchLoan(loanId);
+    const loan = await this.searchLoan(loanId);
 
     await this.loanRepository.update(loanId, {
       return_date: Date.now(),
       status: 'Returned',
       return_condition: 'Clean',
     });
+
+    const dbType = process.env.DB_TYPE || 'mssql';
+    if (dbType !== 'mssql') {
+      const book = await this.bookRepository.findOne({ where: { id: loan.book_id } });
+      if (book) {
+        book.available = Number(book.available || 0) + 1;
+        await this.bookRepository.save(book);
+      }
+    }
 
     const updatedLoan = await this.findOne(loanId);
 
@@ -408,8 +431,8 @@ export class LoansService {
 
     const fineLogs = fineLogsToCreate.length
       ? await this.fineLogRepository.save(
-          this.fineLogRepository.create(fineLogsToCreate),
-        )
+        this.fineLogRepository.create(fineLogsToCreate),
+      )
       : [];
 
     await this.loanRepository.update(loan.id, {
@@ -417,6 +440,15 @@ export class LoansService {
       status: condition,
       return_condition: condition,
     });
+
+    const dbType = process.env.DB_TYPE || 'mssql';
+    if (dbType !== 'mssql' && condition === 'Lost') {
+      const book = await this.bookRepository.findOne({ where: { id: loan.book_id } });
+      if (book) {
+        book.quantity = Math.max(0, Number(book.quantity || 0) - 1);
+        await this.bookRepository.save(book);
+      }
+    }
 
     const updatedLoan = await this.findOne(loan.id);
     const totalFine = fineLogs.reduce(

@@ -170,6 +170,55 @@ export const MyBorrowedBooks: React.FC = () => {
         {accountStatus.text}
       </div>
 
+      {/* Quota Progress Bar & Library Rules Panel */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-2 rounded-2xl border border-slate-100 bg-slate-50/50 p-5">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm font-bold text-slate-700">Sách đang mượn & Chờ duyệt (Borrowing Limit):</span>
+            <span className="text-sm font-bold text-sky-600">{loans.length} / 5 cuốn</span>
+          </div>
+          <div className="w-full bg-slate-200 h-3 rounded-full overflow-hidden">
+            <div 
+              className={`h-full rounded-full transition-all duration-500 ${
+                loans.length >= 5 ? 'bg-rose-500' : loans.length >= 3 ? 'bg-amber-500' : 'bg-sky-500'
+              }`}
+              style={{ width: `${Math.min(100, (loans.length / 5) * 100)}%` }}
+            ></div>
+          </div>
+          {loans.length >= 5 && (
+            <p className="text-xs text-rose-600 mt-2 font-medium">⚠️ Bạn đã đạt giới hạn mượn tối đa 5 cuốn sách. Vui lòng hoàn thành trả sách cũ trước khi đăng ký mượn thêm.</p>
+          )}
+        </div>
+        
+        <div className="rounded-2xl border border-sky-100 bg-sky-50/20 p-5 text-xs text-slate-600 space-y-2">
+          <p className="font-bold text-sky-800 text-sm mb-2">📌 Quy định thư viện</p>
+          <div className="flex justify-between border-b border-sky-100 pb-1.5">
+            <span>Hạn mức tối đa:</span>
+            <span className="font-bold text-slate-800">5 cuốn/độc giả</span>
+          </div>
+          <div className="flex justify-between border-b border-sky-100 pb-1.5">
+            <span>Thời hạn mượn:</span>
+            <span className="font-bold text-slate-800">30 ngày/cuốn</span>
+          </div>
+          <div className="flex justify-between border-b border-sky-100 pb-1.5">
+            <span>Gia hạn thẻ:</span>
+            <span className="font-bold text-slate-800">Liên hệ Thủ thư</span>
+          </div>
+          <div className="flex justify-between border-b border-sky-100 pb-1.5">
+            <span>Quá hạn phạt:</span>
+            <span className="font-bold text-rose-600">5% giá bìa/ngày</span>
+          </div>
+          <div className="flex justify-between border-b border-sky-100 pb-1.5">
+            <span>Làm hỏng sách:</span>
+            <span className="font-bold text-rose-600">Phạt 50% giá bìa</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Làm mất sách:</span>
+            <span className="font-bold text-rose-600">Phạt 150% giá bìa</span>
+          </div>
+        </div>
+      </div>
+
       {isLoading ? (
         <div className="rounded-2xl border border-slate-100 bg-white p-6 text-slate-500">Loading data...</div>
       ) : loans.length === 0 ? (

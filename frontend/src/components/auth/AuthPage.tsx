@@ -94,7 +94,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
           </div>
 
           {/* Demo Access: Làm gọn gàng hơn ở dưới cùng */}
-          {type === 'login' && (
+          {/* {type === 'login' && (
             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-3">Quick Demo Access</p>
                <div className="space-y-2 text-[12px]">
@@ -112,7 +112,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                   </div>
                </div>
             </div>
-          )}
+          )} */}
         </motion.div>
       </div>
     </div>

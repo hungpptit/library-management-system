@@ -1,0 +1,612 @@
+{
+  "info": {
+    "name": "Library API Test",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "API-000. Đăng nhập Admin (Pre-requisite)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200 or 201', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+              "});",
+              "pm.test('Contains access_token cookie', function () {",
+              "    var token = pm.cookies.get('access_token');",
+              "    pm.expect(token).to.not.be.undefined;",
+              "    pm.collectionVariables.set('admin_token', token);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"admin@library.com\",\n  \"password\": \"123\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3001/api/users/login",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "api",
+            "users",
+            "login"
+          ]
+        }
+      }
+    },
+    {
+      "name": "API-001. Tìm kiếm sách (Positive)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Contains Gatsby', function () {",
+              "    pm.expect(pm.response.text()).to.include('Gatsby');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3001/api/books/search?keyword=Gatsby",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "api",
+            "books",
+            "search"
+          ],
+          "query": [
+            {
+              "key": "keyword",
+              "value": "Gatsby"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "API-002. Mượn sách vượt hạn ngạch (Negative)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "pm.test('Contains error message', function () {",
+              "    var text = pm.response.text();",
+              "    pm.expect(text.includes('giới hạn') || text.includes('overdue') || text.includes('Overdue')).to.be.true;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const sendPromise = (req) => new Promise((resolve, reject) => {",
+              "    pm.sendRequest(req, (err, res) => {",
+              "        if (err) reject(err);",
+              "        else resolve(res);",
+              "    });",
+              "});",
+              "",
+              "(async () => {",
+              "    try {",
+              "        const booksRes = await sendPromise({",
+              "            url: 'http://localhost:3001/api/books',",
+              "            method: 'GET'",
+              "        });",
+              "        const books = booksRes.json();",
+              "        const availableBooks = books.filter(b => b.available > 0);",
+              "        if (availableBooks.length < 6) {",
+              "            console.error('Not enough available books in library to perform quota test!');",
+              "            return;",
+              "        }",
+              "        ",
+              "        const uniqueId = Date.now();",
+              "        const userRes = await sendPromise({",
+              "            url: 'http://localhost:3001/api/users',",
+              "            method: 'POST',",
+              "            header: { 'Content-Type': 'application/json' },",
+              "            body: {",
+              "                mode: 'raw',",
+              "                raw: JSON.stringify({",
+              "                    email: 'quota_user_' + uniqueId + '@library.com',",
+              "                    displayName: 'Quota Test Reader',",
+              "                    password: '123',",
+              "                    role: 'reader'",
+              "                })",
+              "            }",
+              "        });",
+              "        const userId = userRes.json().id;",
+              "        ",
+              "        for (let i = 0; i < 5; i++) {",
+              "            await sendPromise({",
+              "                url: 'http://localhost:3001/api/loans/borrow',",
+              "                method: 'POST',",
+              "                header: { 'Content-Type': 'application/json' },",
+              "                body: {",
+              "                    mode: 'raw',",
+              "                    raw: JSON.stringify({",
+              "                        userId: userId,",
+              "                        bookId: availableBooks[i].id,",
+              "                        dueDate: Date.now() + 7 * 24 * 60 * 60 * 1000",
+              "                    })",
+              "                }",
+              "            });",
+              "        }",
+              "        ",
+              "        pm.collectionVariables.set('quota_test_user_id', userId);",
+              "        pm.collectionVariables.set('quota_test_book_id', availableBooks[5].id);",
+              "    } catch (e) {",
+              "        console.error('Error in quota pre-requisite: ', e);",
+              "    }",
+              "})();"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": {{quota_test_user_id}},\n  \"bookId\": {{quota_test_book_id}},\n  \"dueDate\": 1750000000000\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3001/api/loans/borrow",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "api",
+            "loans",
+            "borrow"
+          ]
+        }
+      }
+    },
+    {
+      "name": "API-003. Xử lý trả sách (Positive)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Contains Returned', function () {",
+              "    pm.expect(pm.response.text()).to.include('Returned');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3001/api/loans/11/return",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "api",
+            "loans",
+            "11",
+            "return"
+          ]
+        }
+      }
+    },
+    {
+      "name": "API-004. Thêm sách mới (Positive)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "pm.test('Contains book title', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.title).to.include('Head First Design Patterns');",
+              "    pm.collectionVariables.set('created_book_id', jsonData.id);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "var uniqueId = Date.now();",
+              "pm.collectionVariables.set('dynamic_book_isbn', '978-' + uniqueId.toString().slice(-10));"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Head First Design Patterns\",\n  \"isbn\": \"{{dynamic_book_isbn}}\",\n  \"author\": \"Eric Freeman\",\n  \"genre\": \"Programming\",\n  \"publisher\": \"O'Reilly Media\",\n  \"quantity\": 3,\n  \"price\": 45.99,\n  \"year\": 2004,\n  \"location\": \"Shelf P-01\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3001/api/books",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "api",
+            "books"
+          ]
+        }
+      }
+    },
+    {
+      "name": "API-005. Cập nhật thông tin sách (Positive)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Contains Updated Edition', function () {",
+              "    pm.expect(pm.response.text()).to.include('Updated Edition');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"The Great Gatsby (Updated Edition)\",\n  \"isbn\": \"978-0743273565\",\n  \"price\": 19.99\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3001/api/books/1",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "api",
+            "books",
+            "1"
+          ]
+        }
+      }
+    },
+    {
+      "name": "API-006. Xóa mềm sách (Gray-box)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:3001/api/books/{{created_book_id}}",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "api",
+            "books",
+            "{{created_book_id}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "API-007. Lấy danh sách độc giả (Positive)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Contains email field', function () {",
+              "    pm.expect(pm.response.text()).to.include('email');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3001/api/users",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "api",
+            "users"
+          ]
+        }
+      }
+    },
+    {
+      "name": "API-007b. Tạo độc giả test (Pre-requisite)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "var uniqueId = Date.now();",
+              "pm.collectionVariables.set('dynamic_user_email', 'test_user_' + uniqueId + '@library.com');"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.collectionVariables.set('created_user_id', jsonData.id);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{dynamic_user_email}}\",\n  \"displayName\": \"Dynamic Reader\",\n  \"password\": \"123\",\n  \"role\": \"reader\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3001/api/users",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "api",
+            "users"
+          ]
+        }
+      }
+    },
+    {
+      "name": "API-008. Cập nhật hồ sơ độc giả (Negative)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "pm.test('Contains validation error', function () {",
+              "    pm.expect(pm.response.text()).to.include('Status must be active or deleted');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"invalid_status_value\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3001/api/users/{{created_user_id}}",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "api",
+            "users",
+            "{{created_user_id}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "API-009. Vô hiệu hóa tài khoản (Positive)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Contains deleted status', function () {",
+              "    pm.expect(pm.response.text()).to.include('deleted');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"deleted\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3001/api/users/{{created_user_id}}",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3001",
+          "path": [
+            "api",
+            "users",
+            "{{created_user_id}}"
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "admin_token",
+      "value": ""
+    },
+    {
+      "key": "created_book_id",
+      "value": ""
+    },
+    {
+      "key": "dynamic_user_email",
+      "value": ""
+    },
+    {
+      "key": "created_user_id",
+      "value": ""
+    },
+    {
+      "key": "quota_test_user_id",
+      "value": ""
+    },
+    {
+      "key": "quota_test_book_id",
+      "value": ""
+    },
+    {
+      "key": "dynamic_book_isbn",
+      "value": ""
+    }
+  ]
+}

@@ -54,8 +54,14 @@ export const getCurrentUser = (): UserProfile | null => {
   }
 };
 
-export const logoutUser = () => {
+export const logoutUser = async () => {
+  try {
+    await apiInstance.post('/users/logout');
+  } catch (error) {
+    console.error('Logout error:', error);
+  }
   localStorage.removeItem(CURRENT_USER_KEY);
+  localStorage.removeItem('lms_access_token'); // Clean up any leftover token
 };
 
 export const loginUser = async (data: {
@@ -70,7 +76,9 @@ export const loginUser = async (data: {
     password,
   });
 
-  const normalized = normalizeUser(response.data);
+  const user = response.data;
+
+  const normalized = normalizeUser(user);
   saveCurrentUser(normalized);
   return normalized;
 };
@@ -86,7 +94,7 @@ export const registerUser = async (data: {
   const displayName = String(data.displayName || '').trim();
   const studentId = String(data.studentId || '').trim();
 
-  const response = await apiInstance.post('/users', {
+  await apiInstance.post('/users', {
     email,
     password,
     display_name: displayName,
@@ -94,9 +102,7 @@ export const registerUser = async (data: {
     role: 'reader',
   });
 
-  const normalized = normalizeUser(response.data);
-  saveCurrentUser(normalized);
-  return normalized;
+  return loginUser({ email, password });
 };
 
 export const updateUser = async (

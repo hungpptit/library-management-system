@@ -146,7 +146,7 @@ export const AppContent = () => {
         // --- READER & GUEST VIEW ---
         switch (activeTab) {
             case 'home':
-                return <UserDashboard books={books} onSearch={setSearchQuery} onBorrow={onBorrowWithAuth} />;
+                return <UserDashboard books={books} searchQuery={searchQuery} onSearch={setSearchQuery} onBorrow={onBorrowWithAuth} />;
             
             case 'my-books':
                 if (!user) {

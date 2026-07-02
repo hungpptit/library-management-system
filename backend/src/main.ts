@@ -1,6 +1,8 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DataSource } from 'typeorm';
+import * as bcrypt from 'bcryptjs';
+import { User } from './users/user.entity';
 
 async function ensureUsersSchema(dataSource: DataSource) {
   await dataSource.query(`
@@ -140,21 +142,25 @@ async function ensureLoansSchema(dataSource: DataSource) {
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  // Enable CORS for frontend communication
+  app.setGlobalPrefix('api');
   app.enableCors({
-    origin: '*', // Allow all origins for development to avoid port mismatch
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000', // Specify dynamic origin or localhost for credentials
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
 
   try {
-    const dataSource = app.get(DataSource);
-    await ensureUsersSchema(dataSource);
-    await ensureLoansSchema(dataSource);
+    const dbType = process.env.DB_TYPE || 'mssql';
+    if (dbType === 'mssql') {
+      const dataSource = app.get(DataSource);
+      await ensureUsersSchema(dataSource);
+      await ensureLoansSchema(dataSource);
+    }
   } catch (error) {
     console.error('Failed to auto-fix schema:', error);
   }
 
-  await app.listen(3001);
+  const port = process.env.PORT || 3001;
+  await app.listen(port, '0.0.0.0');
 }
 bootstrap();
