@@ -10,7 +10,7 @@ import { User } from './user.entity';
     TypeOrmModule.forFeature([User]),
     JwtModule.register({
       global: true,
-      secret: 'library-secret-key-12345',
+      secret: process.env.JWT_SECRET || 'library-secret-key-12345',
       signOptions: { expiresIn: '7d' },
     }),
   ],

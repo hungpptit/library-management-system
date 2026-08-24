@@ -11,19 +11,22 @@ import {
 } from '@nestjs/common';
 import { Response } from 'express';
 import { UsersService } from './users.service';
+import { CreateUserDto } from './dto/create-user.dto';
+import { LoginUserDto } from './dto/login-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
-  create(@Body() user: any) {
+  create(@Body() user: CreateUserDto) {
     return this.usersService.create(user);
   }
 
   @Post('login')
   async login(
-    @Body() loginData: { email: string; password: string },
+    @Body() loginData: LoginUserDto,
     @Res({ passthrough: true }) response: Response,
   ) {
     const result = await this.usersService.login(loginData);
@@ -61,7 +64,7 @@ export class UsersController {
   }
 
   @Put(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() user: any) {
+  update(@Param('id', ParseIntPipe) id: number, @Body() user: UpdateUserDto) {
     return this.usersService.update(id, user);
   }
 

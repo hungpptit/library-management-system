@@ -2,6 +2,8 @@ import { Controller, Get, Post, Body, Param, Put, Delete, ParseIntPipe } from '@
 import { LoansService } from './loans.service';
 import { CreateLoanDto } from './dto/create-loan.dto';
 import { UpdateLoanDto } from './dto/update-loan.dto';
+import { BorrowLoanDto } from './dto/borrow-loan.dto';
+import { ReportDamageDto } from './dto/report-damage.dto';
 
 @Controller('loans')
 export class LoansController {
@@ -45,13 +47,7 @@ export class LoansController {
   @Post(':id/report-damage')
   reportDamageOrLoss(
     @Param('id', ParseIntPipe) id: number,
-    @Body()
-    returnData: {
-      loanId?: number;
-      condition: 'Damaged' | 'Lost';
-      overdueDays?: number;
-      adminNote?: string;
-    },
+    @Body() returnData: ReportDamageDto,
   ) {
     return this.loansService.reportDamageOrLoss({
       ...returnData,
@@ -83,7 +79,7 @@ export class LoansController {
   }
 
   @Post('borrow')
-  borrow(@Body() borrowData: { userId: number; bookId: number; dueDate: number }) {
+  borrow(@Body() borrowData: BorrowLoanDto) {
     return this.loansService.borrow(
       borrowData.userId,
       borrowData.bookId,

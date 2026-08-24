@@ -1,9 +1,10 @@
 import { Controller, Get, Post, Body, Param, Put, Delete, Query, ParseIntPipe, ConflictException, NotFoundException, UseGuards } from '@nestjs/common';
 import { BooksService } from './books.service';
-import { Book } from './book.entity';
 import { AuthGuard } from '../common/guards/auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { CreateBookDto } from './dto/create-book.dto';
+import { UpdateBookDto } from './dto/update-book.dto';
 
 @Controller('books')
 export class BooksController {
@@ -12,7 +13,7 @@ export class BooksController {
   @Post()
   @UseGuards(AuthGuard, RolesGuard)
   @Roles('admin')
-  async create(@Body() bookData: Partial<Book>) {
+  async create(@Body() bookData: CreateBookDto) {
     try {
       return await this.booksService.create(bookData);
     } catch (error) {
@@ -50,7 +51,7 @@ export class BooksController {
   @Put(':id')
   @UseGuards(AuthGuard, RolesGuard)
   @Roles('admin')
-  async update(@Param('id', ParseIntPipe) id: number, @Body() bookData: Partial<Book>) {
+  async update(@Param('id', ParseIntPipe) id: number, @Body() bookData: UpdateBookDto) {
     return this.booksService.update(id, bookData);
   }
 

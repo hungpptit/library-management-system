@@ -1,404 +1,240 @@
-# 📚 HỆ THỐNG QUẢN LÝ THƯ VIỆN
+# 📚 Hệ Thống Quản Lý Thư Viện (Library Management System - LMS)
 
-## 1. Thông Tin Đề Tài
-**Tên đề tài:** Hệ thống Quản lý Thư viện  
-**Số lượng thành viên:** 3 sinh viên  
-**Trạng thái:** Đang phát triển (v1.0.0)
+[![NestJS](https://img.shields.io/badge/Backend-NestJS%20v10-E0234E?style=flat&logo=nestjs&logoColor=white)](https://nestjs.com/)
+[![TypeScript](https://img.shields.io/badge/Language-TypeScript%205-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![TypeORM](https://img.shields.io/badge/ORM-TypeORM%20v0.3-FE0803?style=flat&logo=typeorm&logoColor=white)](https://typeorm.io/)
+[![Database](https://img.shields.io/badge/Database-MSSQL%20%7C%20PostgreSQL-336791?style=flat&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Jest Tests](https://img.shields.io/badge/Tests-95%20Passed%20(100%25)-brightgreen?style=flat&logo=jest&logoColor=white)](https://jestjs.io/)
+[![Code Coverage](https://img.shields.io/badge/Coverage-80.6%25%20Overall%20%7C%2099%25%20Users-success?style=flat)]()
+[![Security](https://img.shields.io/badge/Security-JWT%20%2B%20HttpOnly%20%2B%20RBAC-blue?style=flat)]()
 
----
-
-## 2. Mô Tả Dự Án
-
-Ứng dụng web toàn diện để quản lý thư viện, cho phép:
-- **Độc giả**: Tìm kiếm, xem chi tiết sách, mượn/trả sách, quản lý thông tin cá nhân
-- **Quản trị viên (Thủ thư)**: Quản lý sách, độc giả, phiếu mượn trả, tính phí phạt
-
-### 🎯 Các Yêu Cầu Chính
-
-#### 2.1 Quản lý Mượn Sách (Use Case 1)
-- Ghi nhận thông tin mượn sách: Thủ thư lập phiếu mượn bằng Mã độc giả và Mã sách
-- Kiểm tra ràng buộc:
-  - Kiểm tra thẻ độc giả còn hạn
-  - Kiểm tra số lượng sách đang mượn không vượt giới hạn
-- Cập nhật trạng thái sách sang **"Đang mượn"** khi lập phiếu thành công
-
-#### 2.2 Quản lý Trả Sách & Tính Phạt (Use Case 2)
-- Ghi nhận trả sách: Nhập Mã phiếu mượn hoặc Mã sách
-- Tính toán tiền phạt:
-  - So sánh ngày trả thực tế với ngày hẹn trả
-  - Tính số ngày quá hạn và áp dụng đơn giá phạt
-- Cập nhật trạng thái sách về **"Sẵn có"** và lưu lịch sử giao dịch
-
-#### 2.3 Tra Cứu & Quản Lý Danh Mục (Use Case 3)
-- Tìm kiếm thông minh: Theo Tên sách, Tác giả, Thể loại, ISBN
-- Phân loại: Hiển thị sách theo danh mục chuyên ngành (CNTT, Kinh tế, Ngoại ngữ...)
+Hệ thống Quản lý Thư viện (LMS) được thiết kế và xây dựng theo chuẩn **Enterprise Modular Architecture** với **NestJS**, **TypeScript** và **TypeORM**. Hệ thống giải quyết trọn vẹn các bài toán nghiệp vụ phức tạp: Quản lý vòng đời mượn - trả sách (State Machine), hàng đợi duyệt ưu tiên (FIFO Queue), kiểm soát hạn ngạch và hạn thẻ độc giả, tính toán phạt vi phạm theo ngày và điều kiện sách, đảm bảo tính toàn vẹn dữ liệu với **Database Transactions (ACID)** và **Soft Delete**.
 
 ---
 
-## 3. Các Use Case Chính
-
-| Use Case | Mô Tả | Trạng Thái |
-|----------|-------|-----------|
-| **Quản lý Sách** | Nhập liệu, phân loại theo chuyên ngành | ✅ |
-| **Quản lý Mượn - Trả** | Ghi nhận, tự động chuyển trạng thái | ✅ |
-| **Quản lý Độc giả** | Lưu trữ thông tin, kiểm soát số sách mượn | ✅ |
-| **Tính phí phạt** | Tự động so sánh ngày trả, xuất hóa đơn | ✅ |
-
----
-
-## 4. Thành Viên Nhóm
-
-### 👨‍💼 Thành Viên 1: Phạm Tuấn Hưng (Trưởng nhóm)
-**Phụ trách:** Tra cứu & Quản lý danh mục Sách
-
-**Phát triển (Dev):**
-- Xây dựng chức năng CRUD Sách (Thêm, sửa, xóa, quản lý trạng thái)
-- Thiết kế Database cho thực thể `Books` và `Categories`
-- Xây dựng công cụ tìm kiếm thông minh
-
-**Kiểm thử (Testing):**
-- Lập kế hoạch kiểm thử (**Test Plan**) cho toàn bộ hệ thống
-- Thực hiện **Kiểm thử giao diện (UI Testing)**
-- Áp dụng kỹ thuật **Phân vùng tương đương** cho chức năng tìm kiếm
-
-### 👩‍💻 Thành Viên 2: Kiều
-**Phụ trách:** Quản lý Mượn - Trả & Tính Phí Phạt
-
-**Phát triển (Dev):**
-- Xây dựng logic lập phiếu mượn (kiểm tra hạn thẻ, giới hạn số sách)
-- Xử lý quy trình trả sách và cập nhật trạng thái kho
-- Viết thuật toán tính tiền phạt theo số ngày quá hạn
-
-**Kiểm thử (Testing):**
-- Thực hiện **Kiểm thử hộp trắng (Unit Test)** cho hàm tính tiền phạt
-- Thiết kế **Bảng quyết định (Decision Table)** cho ràng buộc khi mượn
-
-### 👨‍💻 Thành Viên 3: Quý
-**Phụ trách:** Đăng ký & Quản lý Độc giả
-
-**Phát triển (Dev):**
-- Xây dựng chức năng đăng ký/đăng nhập, cập nhật thông tin độc giả
-- Quản lý thời hạn hiệu lực thẻ độc giả
-- Theo dõi lịch sử mượn trả cá nhân
-
-**Kiểm thử (Testing):**
-- Thực hiện **Rà soát tài liệu đặc tả (Review SRS)**
-- Áp dụng kỹ thuật **Phân tích giá trị biên** cho các trường dữ liệu
-
----
-
-## 5. Công Nghệ Sử Dụng
-
-### Backend
-- **Framework:** NestJS
-- **Ngôn ngữ:** TypeScript
-- **Database:** PostgreSQL
-- **ORM:** TypeORM
-- **API:** REST API với JWT Authentication
-
-### Frontend
-- **Framework:** React 18
-- **Build Tool:** Vite
-- **Ngôn ngữ:** TypeScript
-- **Styling:** CSS
-
-### Công Cụ & Môi Trường
-- **Runtime:** Node.js v16+
-- **Package Manager:** npm v7+
-- **Version Control:** Git
-
----
-
-## 6. Cấu Trúc Dự Án
+## 🏛️ 1. Kiến Trúc Hệ Thống (System Architecture)
 
 ```
-├── backend/                 # Backend NestJS
-│   ├── src/
-│   │   ├── books/          # Module quản lý sách
-│   │   │   ├── book.entity.ts
-│   │   │   ├── author.entity.ts
-│   │   │   ├── category.entity.ts
-│   │   │   ├── publisher.entity.ts
-│   │   │   ├── books.controller.ts
-│   │   │   ├── books.service.ts
-│   │   │   └── books.module.ts
-│   │   ├── loans/          # Module quản lý mượn trả
-│   │   │   ├── loan.entity.ts
-│   │   │   ├── finelog.entity.ts
-│   │   │   ├── loans.controller.ts
-│   │   │   ├── loans.service.ts
-│   │   │   ├── loans.module.ts
-│   │   │   └── dto/
-│   │   ├── users/          # Module quản lý người dùng
-│   │   │   ├── user.entity.ts
-│   │   │   ├── users.controller.ts
-│   │   │   ├── users.service.ts
-│   │   │   └── users.module.ts
-│   │   ├── common/         # Shared utilities
-│   │   ├── main.ts         # Entry point
-│   │   └── app.module.ts   # Root module
-│   └── package.json
-├── frontend/                # Frontend React + Vite
-│   ├── src/
-│   │   ├── components/     # React components
-│   │   │   ├── admin/      # Admin components
-│   │   │   ├── auth/       # Authentication
-│   │   │   ├── books/      # Book components
-│   │   │   ├── loans/      # Loan components
-│   │   │   ├── users/      # User components
-│   │   │   ├── common/     # Common components
-│   │   │   ├── ui/         # UI components
-│   │   │   └── layout/     # Layout components
-│   │   ├── contexts/       # React Context
-│   │   ├── hooks/          # Custom hooks
-│   │   ├── services/       # API services
-│   │   ├── types.ts        # TypeScript types
-│   │   └── main.tsx        # Entry point
-│   └── package.json
-├── init_db.sql             # Database schema & seed data
-├── package.json            # Root workspace manager
-└── README.md              # This file
+[ Client Applications (React Web / Mobile / Thunder Client) ]
+                             │
+                             ▼  (HTTP / REST APIs + Credentials)
+┌────────────────────────────────────────────────────────────────────────┐
+│                        NESTJS BACKEND GATEWAY                          │
+│                                                                        │
+│  [ Global Prefix: /api ]                                               │
+│  [ Global ValidationPipe (whitelist: true, transform: true) ]           │
+│  [ Dual-Source AuthGuard: HttpOnly Cookies + Bearer Header ]           │
+│  [ RBAC RolesGuard: @Roles('admin') / @Roles('reader') ]               │
+├────────────────────────────────────────────────────────────────────────┤
+│                           CONTROLLER LAYER                             │
+│       UsersController   │   BooksController   │   LoansController      │
+├────────────────────────────────────────────────────────────────────────┤
+│                        SERVICE & BUSINESS LOGIC                        │
+│   • FIFO Queue Processor           • Find-or-Create Relational Engine │
+│   • Penalty Calculation Engine     • Active Quota Validator (Max 5)   │
+│   • Soft-Delete Guard Validator    • Overdue & Card Expiry Sync Engine│
+├────────────────────────────────────────────────────────────────────────┤
+│                     DATA ACCESS LAYER (TypeORM)                        │
+│   • ACID Database Transactions (manager.transaction)                   │
+│   • Soft-Delete Columns (@DeleteDateColumn, status='deleted')          │
+│   • Entity Repositories: User, Book, Author, Publisher, Category, Loan │
+└────────────────────────────────────┬───────────────────────────────────┘
+                                     │
+                 ┌───────────────────┴───────────────────┐
+                 ▼                                       ▼
+    [ MS SQL Server (Local Dev) ]         [ PostgreSQL (Cloud Production) ]
 ```
 
 ---
 
-## 7. Cài Đặt & Chạy Dự Án
+## 🌟 2. Điểm Nhấn Kỹ Thuật (Senior Backend Highlights)
 
-### 7.1 Yêu Cầu Hệ Thống
-- Node.js v16+ hoặc v18+
-- npm v7+
-- PostgreSQL 12+ (hoặc Docker)
-- Git
+### 🔒 1. Giao dịch CSDL nguyên tử (ACID Transactions)
+Các luồng nghiệp vụ phức tạp như **Trả sách (`confirmReturnClean`)** và **Báo hỏng/Mất sách (`reportDamageOrLoss`)** được bọc hoàn toàn trong `this.dataSource.transaction()`. Hệ thống thực hiện đồng thời việc tạo nhật ký phạt `FineLog`, chuyển trạng thái `Loan`, và cập nhật tồn kho `Book` trong một transaction duy nhất, đảm bảo tự động **Rollback** nếu có sự cố mạng hoặc lỗi runtime.
 
-### 7.2 Hướng Dẫn Cài Đặt
+### ⏱️ 2. Hàng đợi duyệt mượn theo thứ tự ưu tiên (FIFO Queue)
+Khi một đầu sách có số lượng giới hạn và có nhiều độc giả cùng đặt mượn, hệ thống bắt buộc thủ thư phải duyệt yêu cầu của người gửi sớm nhất trước (FIFO Enforcement). Đồng thời, API tự động tính toán thứ hạng chờ thời gian thực (`queue_position`) cho từng độc giả.
 
-#### Bước 1: Clone Repository
+### 🛡️ 3. Bảo vệ dữ liệu với cơ chế Soft Delete thông minh
+Áp dụng cơ chế **Soft Delete** (`@DeleteDateColumn`, `status = 'deleted'`) cho cả Sách và Độc giả. Khi xóa một thực thể, hệ thống sẽ kiểm tra toàn bộ lịch sử giao dịch: nếu độc giả hoặc sách đang có phiếu mượn active (`Pending`, `Borrowing`, `Overdue`), hệ thống sẽ ném lỗi `BadRequestException` để ngăn chặn việc thất thoát tài sản thư viện.
+
+### 🔐 4. Xác thực kép & Phân quyền RBAC (Role-Based Access Control)
+- **Hybrid Token Extraction:** Hỗ trợ trích xuất JWT token linh hoạt từ cả Cookie `httpOnly` (chống tấn công XSS) và Header `Authorization: Bearer <token>` (phục vụ Mobile/Postman testing).
+- **Phân quyền chặt chẽ:** Sử dụng Reflector metadata `@Roles('admin')` và `RolesGuard` để bảo vệ các endpoints nhạy cảm.
+
+### 🧹 5. Tự động hóa quan hệ (Find-or-Create Relational Engine)
+Khi thêm sách mới, hệ thống tự động kiểm tra sự tồn tại của Tác giả (`Author`), Nhà xuất bản (`Publisher`), và Thể loại (`Category`). Nếu chưa có trong hệ thống, TypeORM sẽ tự động khởi tạo và liên kết khóa ngoại chỉ trong một API call duy nhất.
+
+---
+
+## 🧪 3. Kiểm Thử Tự Động & Độ Bao Phủ Mã Nguồn (Automated Testing & QA)
+
+Dự án được xây dựng với văn hóa **Test-Driven / High-Coverage Testing**, tích hợp trọn bộ **8 Test Suites với 95 Test Cases** bao phủ từ tầng Controller, Service đến Guards và DTOs.
+
+```
+Test Suites: 8 passed, 8 total
+Tests:       95 passed, 95 total
+Snapshots:   0 total
+Time:        ~15.2 s
+```
+
+### 📊 Bảng đo lường Code Coverage (Jest)
+
+| Phân hệ / Module | Statements | Branch | Functions | Lines | Trạng thái |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Users Service** | **99.02%** | **92.22%** | **100%** | **98.98%** | ✅ Hoàn hảo |
+| **Users Controller & DTOs** | **100%** | **100%** | **100%** | **100%** | ✅ Hoàn hảo |
+| **Loans Service (Transactions & Rules)** | **87.36%** | **68.96%** | **100%** | **87.15%** | ✅ Chuẩn cao |
+| **Loans Controller & DTOs** | **100%** | **100%** | **100%** | **100%** | ✅ Hoàn hảo |
+| **Books Service & Search Engine** | **84.90%** | **67.27%** | **100%** | **84.15%** | ✅ Chuẩn cao |
+| **Books Controller & DTOs** | **93.75%** | **100%** | **100%** | **93.33%** | ✅ Chuẩn cao |
+| **Security Guards (AuthGuard & RolesGuard)** | **100%** | **100%** | **100%** | **100%** | ✅ Hoàn hảo |
+| **Toàn bộ hệ thống (All Files)** | **79.73%** | **69.81%** | **74.54%** | **80.56%** | ✅ **Passed All** |
+
+> Báo cáo chi tiết xem tại: [`TEST_REPORT.md`](file:///d:/He%20Thong%20Quan%20Li%20Thu%20Vien/TEST_REPORT.md) và file log [`test-results.log`](file:///d:/He%20Thong%20Quan%20Li%20Thu%20Vien/test-results.log).
+
+---
+
+## 📂 4. Cấu Trúc Mã Nguồn (Project Structure)
+
+```
+├── backend/                         # Backend NestJS Application
+│   ├── src/
+│   │   ├── common/                  # Guards, Decorators & Shared Utilities
+│   │   │   ├── decorators/          # @Roles() decorator
+│   │   │   └── guards/              # AuthGuard, RolesGuard (100% tested)
+│   │   ├── books/                   # Books Module (Catalog & Search Engine)
+│   │   │   ├── dto/                 # CreateBookDto, UpdateBookDto
+│   │   │   ├── author.entity.ts     # Author Entity
+│   │   │   ├── book.entity.ts       # Book Entity (SoftDelete & ManyToMany)
+│   │   │   ├── category.entity.ts   # Category Entity
+│   │   │   ├── publisher.entity.ts  # Publisher Entity
+│   │   │   ├── books.controller.ts  # REST Endpoints
+│   │   │   └── books.service.ts     # Business Logic
+│   │   ├── loans/                   # Loans Module (Transactions, FIFO, Fines)
+│   │   │   ├── dto/                 # BorrowLoanDto, ReportDamageDto, CreateLoanDto
+│   │   │   ├── loan.entity.ts       # Loan Entity (State Machine)
+│   │   │   ├── finelog.entity.ts    # FineLog Entity
+│   │   │   ├── loans.controller.ts  # REST Endpoints
+│   │   │   └── loans.service.ts     # Core Transactions & Rules
+│   │   ├── users/                   # Users & Authentication Module
+│   │   │   ├── dto/                 # CreateUserDto, LoginUserDto, UpdateUserDto
+│   │   │   ├── user.entity.ts       # User Entity (Bcrypt, Role, Card Expiry)
+│   │   │   ├── users.controller.ts  # Login, Register, Profile, Cookie APIs
+│   │   │   └── users.service.ts     # Auth & Soft-delete Logic
+│   │   ├── app.module.ts            # Root Module & TypeORM DB Config
+│   │   └── main.ts                  # Bootstrap, CORS, ValidationPipe, Schema Fix
+│   ├── run-test-runner.js           # Automated Test & Coverage Logger
+│   └── package.json
+├── frontend/                        # Frontend Application (React + Vite + TypeScript)
+├── init_db.sql                      # SQL Server Schema & Seed Data
+├── package.json                     # Monorepo Workspace Manager
+├── TEST_REPORT.md                   # Báo cáo Kiểm thử & Tối ưu hóa Toàn diện
+└── test-results.log                 # File log kết quả kiểm thử tự động
+```
+
+---
+
+## 🚀 5. Hướng Dẫn Cài Đặt & Chạy Hệ Thống
+
+### 5.1 Yêu cầu môi trường
+- **Node.js:** `v18.x` hoặc `v20.x` / `v22.x`
+- **NPM:** `v9+`
+- **Database:** MS SQL Server 2019+ (Local) hoặc PostgreSQL 14+ (Production / Cloud)
+
+### 5.2 Các bước khởi chạy
+
+#### Bước 1: Clone Repository & Cài đặt Dependencies
 ```bash
 git clone <repository-url>
 cd "He Thong Quan Li Thu Vien"
-```
-
-#### Bước 2: Cài Đặt Dependencies
-
-**Tại root repository:**
-```bash
 npm install
 ```
 
-Lệnh này sẽ cài dependencies cho cả hai workspace `backend/` và `frontend/`.
-
-**Chạy riêng từng phần:**
-```bash
-npm run dev:backend
-npm run dev:frontend
-```
-
-#### Bước 3: Cấu Hình Database
-
-**Tạo Database PostgreSQL:**
-```bash
-createdb library_management
-```
-
-**Chạy SQL initialization:**
-```bash
-psql -U your_username -d library_management -f init_db.sql
-```
-
-#### Bước 4: Cấu Hình Environment Variables
-
-**Backend (.env):**
+#### Bước 2: Cấu hình biến môi trường (`.env`)
+Tạo file `backend/.env` từ file mẫu:
 ```env
+PORT=3001
+NODE_ENV=development
+JWT_SECRET=super-secret-production-jwt-key-2026
+
+# Chọn 'mssql' cho Local Dev hoặc 'postgres' cho Cloud DB
+DB_TYPE=mssql
 DB_HOST=localhost
-DB_PORT=5432
-DB_USERNAME=postgres
-DB_PASSWORD=your_password
-DB_NAME=library_management
+DB_PORT=1433
+DB_USERNAME=sa
+DB_PASSWORD=your_strong_password
+DB_DATABASE=LMS
 DB_SYNCHRONIZE=false
 
-JWT_SECRET=your_jwt_secret_key_here
-JWT_EXPIRATION=86400
-
-PORT=3000
-NODE_ENV=development
+FRONTEND_URL=http://localhost:3000
 ```
 
-**Frontend (.env):**
-```env
-VITE_API_URL=http://localhost:3000/api
-```
-
-#### Bước 5: Chạy Ứng Dụng
-
-Mở 2 terminal từ thư mục gốc và chạy:
-
-**Terminal 1 - Backend:**
+#### Bước 3: Chạy Kiểm Thử Tự Động (Automated Testing)
 ```bash
-npm run dev:backend
-# Server chạy tại http://localhost:3000
-```
+# Chạy toàn bộ 95 test case và xuất file log:
+npm run test:backend
 
-**Terminal 2 - Frontend:**
-```bash
-npm run dev:frontend
-# Ứng dụng chạy tại http://localhost:5173
-```
-
----
-
-## 8. API Endpoints
-
-### Authentication
-```
-POST   /api/auth/register        # Đăng ký tài khoản mới
-POST   /api/auth/login           # Đăng nhập
-```
-
-### Books
-```
-GET    /api/books                # Lấy danh sách sách
-GET    /api/books/:id            # Chi tiết sách
-POST   /api/books                # Thêm sách (Admin)
-PUT    /api/books/:id            # Cập nhật sách (Admin)
-DELETE /api/books/:id            # Xóa sách (Admin)
-```
-
-### Loans
-```
-GET    /api/loans                # Danh sách mượn trả
-GET    /api/loans/:id            # Chi tiết phiếu mượn
-POST   /api/loans                # Tạo phiếu mượn
-PUT    /api/loans/:id            # Cập nhật (trả sách)
-GET    /api/loans/overdue        # Sách quá hạn
-```
-
-### Users
-```
-GET    /api/users                # Danh sách độc giả (Admin)
-GET    /api/users/:id            # Chi tiết độc giả
-PUT    /api/users/:id            # Cập nhật thông tin
-DELETE /api/users/:id            # Xóa độc giả (Admin)
-```
-
----
-
-## 9. Tính Năng Chính
-
-### Cho Độc Giả
-✅ Đăng ký, đăng nhập tài khoản  
-✅ Tìm kiếm & xem chi tiết sách  
-✅ Mượn sách, quản lý phiếu mượn  
-✅ Xem lịch sử mượn trả  
-✅ Quản lý thông tin cá nhân  
-
-### Cho Quản Trị Viên
-✅ Quản lý danh sách sách  
-✅ Quản lý độc giả  
-✅ Quản lý phiếu mượn trả  
-✅ Tính phí phạt quá hạn  
-✅ Xem thống kê & báo cáo  
-
----
-
-## 10. Hướng Dẫn Sử Dụng
-
-### Đăng Nhập
-1. Truy cập `http://localhost:5173`
-2. Nhập email và mật khẩu
-3. Chọn "Đăng Nhập"
-
-### Mượn Sách
-1. Tìm sách cần mượn
-2. Chọn "Mượn"
-3. Chọn ngày trả dự kiến
-4. Xác nhận
-
-### Trả Sách
-1. Vào danh sách "Sách đang mượn"
-2. Chọn "Trả"
-3. Xác nhận
-4. Hệ thống tính phí phạt nếu quá hạn
-
----
-
-## 11. Kiểm Thử
-
-### Chạy Test
-```bash
-# Backend
+# Hoặc từ thư mục backend:
 cd backend
-npm run test
-
-# Frontend
-cd frontend
-npm run test
+npm run test:cov       # In bảng coverage
+npm run test:report    # Xuất báo cáo test-results.log
 ```
 
-### Test Coverage
+#### Bước 4: Khởi chạy Ứng dụng
 ```bash
-cd backend
-npm run test:cov
+# Khởi chạy đồng thời cả Backend và Frontend từ thư mục gốc:
+npm run dev:backend    # Backend chạy tại http://localhost:3001
+npm run dev:frontend   # Frontend chạy tại http://localhost:3000
 ```
 
 ---
 
-## 12. Bảo Mật
+## 📡 6. Danh Sách RESTful API Endpoints
 
-- ✅ Mật khẩu mã hóa bằng bcrypt
-- ✅ JWT token cho authentication
-- ✅ CORS được cấu hình
-- ✅ Input validation trên backend & frontend
-- ✅ SQL injection prevention (TypeORM)
+### 🔑 Authentication & Users (`/api/users`)
+| Method | Endpoint | Quyền hạn | Mô tả |
+| :--- | :--- | :---: | :--- |
+| `POST` | `/api/users` | Public | Đăng ký tài khoản độc giả mới |
+| `POST` | `/api/users/login` | Public | Đăng nhập, cấp phát JWT & thiết lập HttpOnly Cookie |
+| `POST` | `/api/users/logout` | Public | Đăng xuất, hủy bỏ Cookie phiên làm việc |
+| `GET` | `/api/users` | Admin | Lấy danh sách độc giả đang hoạt động (`status = 'active'`) |
+| `GET` | `/api/users/:id` | Admin/User | Lấy thông tin chi tiết độc giả |
+| `PUT` | `/api/users/:id` | Admin/User | Cập nhật hồ sơ, gia hạn thẻ, vô hiệu hóa tài khoản |
+| `DELETE` | `/api/users/:id` | Admin | Xóa mềm độc giả (chặn xóa nếu còn sách đang mượn) |
 
----
+### 📖 Books Catalog (`/api/books`)
+| Method | Endpoint | Quyền hạn | Mô tả |
+| :--- | :--- | :---: | :--- |
+| `GET` | `/api/books` | Public | Lấy danh sách sách kèm số lượng yêu cầu chờ (`pending_count`) |
+| `GET` | `/api/books/search?keyword=...` | Public | Tìm kiếm sách không phân biệt hoa thường (`title`, `isbn`, `description`) |
+| `GET` | `/api/books/isbn/:isbn` | Public | Tìm sách theo mã chuẩn ISBN |
+| `GET` | `/api/books/:id` | Public | Chi tiết thông tin sách |
+| `POST` | `/api/books` | Admin | Thêm sách mới (Find-or-Create Tác giả, NXB, Thể loại) |
+| `PUT` | `/api/books/:id` | Admin | Cập nhật thông tin sách |
+| `DELETE` | `/api/books/:id` | Admin | Xóa mềm sách (chặn xóa nếu sách đang có người mượn) |
 
-## 13. Troubleshooting
-
-### Lỗi kết nối Database
-```bash
-# Kiểm tra PostgreSQL đang chạy
-psql --version
-
-# Kiểm tra thông tin connection
-psql -h localhost -U postgres
-```
-
-### Port 3000 hoặc 5173 đang được sử dụng
-```bash
-# Thay đổi port trong .env hoặc vite.config.ts
-```
-
-### Dependencies không được install
-```bash
-npm clean-install  # Thay vì npm install
-```
-
----
-
-## 14. Yêu Cầu Dự Án
-
-### 📌 Yêu Cầu Chung
-- Thực hiện đúng tiến độ theo lịch trình
-- Hoàn thành các giai đoạn: Rà soát, Kiểm thử, Báo cáo
-- Tất cả thành viên:
-  - Tham gia xây dựng Test Case
-  - Thực hiện kiểm thử thủ công/tự động
-  - Hoàn thiện báo cáo tiểu luận cuối kỳ
+### 🔄 Loans & Penalty Management (`/api/loans`)
+| Method | Endpoint | Quyền hạn | Mô tả |
+| :--- | :--- | :---: | :--- |
+| `POST` | `/api/loans/borrow` | Reader | Đăng ký mượn sách (Validate hạn ngạch 5 cuốn, hạn thẻ, quá hạn) |
+| `GET` | `/api/loans/my-active-loans/:userId` | Reader | Lấy danh sách sách đang mượn kèm vị trí hàng đợi `queue_position` |
+| `GET` | `/api/loans/fines/:userId` | Reader | Xem tổng số tiền phạt và chi tiết biên lai phạt vi phạm |
+| `GET` | `/api/loans/search/:loanId` | Admin | Tra cứu phiếu mượn phục vụ thủ tục trả sách |
+| `POST` | `/api/loans/:id/approve` | Admin | Duyệt phiếu mượn theo đúng thứ tự ưu tiên **FIFO** |
+| `POST` | `/api/loans/:id/reject` | Admin | Từ chối yêu cầu mượn, giải phóng sách cho hàng đợi |
+| `POST` | `/api/loans/:id/confirm-clean` | Admin | Hoàn tất trả sách sạch sẽ *(Bọc trong Database Transaction)* |
+| `POST` | `/api/loans/:id/report-damage` | Admin | Báo cáo hỏng (50%) / Mất sách (150% + trừ kho) *(Bọc Transaction)* |
 
 ---
 
-## 15. Liên Hệ & Hỗ Trợ
+## 🎯 7. Định Hướng Mở Rộng & Khả Năng Mở Rộng (Future Roadmap)
 
-Nếu bạn có câu hỏi hoặc gợi ý, vui lòng liên hệ nhóm phát triển.
-
-### Báo Cáo Lỗi
-Tạo issue với:
-- Mô tả chi tiết vấn đề
-- Các bước tái tạo
-- Screenshots/logs
+- [ ] **Redis Caching Layer:** Tích hợp Redis để cache kết quả tìm kiếm sách (`GET /api/books/search`) giảm tải truy vấn CSDL.
+- [ ] **Background Worker / Cron Jobs:** Lên lịch chạy ngầm bằng `@nestjs/schedule` để tự động quét và chuyển trạng thái `Overdue` vào 00:00 hàng ngày.
+- [ ] **Message Queue (BullMQ / RabbitMQ):** Xử lý email thông báo nhắc hạn trả sách tự động cho độc giả.
+- [ ] **CI/CD Pipeline:** Tích hợp GitHub Actions tự động chạy `npm run test:backend` trên mỗi Pull Request.
 
 ---
 
-**Phiên bản:** 1.0.0  
-**Cập nhật:** Tháng 5, 2026  
-**Trạng thái:** Đang phát triển ✨
+

@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, Repository, DataSource } from 'typeorm';
 import { Loan } from './loan.entity';
 import { FineLog } from './finelog.entity';
 import { Book } from '../books/book.entity';
@@ -29,6 +29,7 @@ export class LoansService {
     private readonly bookRepository: Repository<Book>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly dataSource: DataSource,
   ) { }
 
   private async syncOverdueStatuses(options?: {
@@ -349,28 +350,33 @@ export class LoansService {
   ): Promise<{ success: boolean; message: string; loan: Loan }> {
     const loan = await this.searchLoan(loanId);
 
-    await this.loanRepository.update(loanId, {
-      return_date: Date.now(),
-      status: 'Returned',
-      return_condition: 'Clean',
-    });
+    return await this.dataSource.transaction(async (manager) => {
+      await manager.update(Loan, loanId, {
+        return_date: Date.now(),
+        status: 'Returned',
+        return_condition: 'Clean',
+      });
 
-    const dbType = process.env.DB_TYPE || 'mssql';
-    if (dbType !== 'mssql') {
-      const book = await this.bookRepository.findOne({ where: { id: loan.book_id } });
-      if (book) {
-        book.available = Number(book.available || 0) + 1;
-        await this.bookRepository.save(book);
+      const dbType = process.env.DB_TYPE || 'mssql';
+      if (dbType !== 'mssql') {
+        const book = await manager.findOne(Book, { where: { id: loan.book_id } });
+        if (book) {
+          book.available = Number(book.available || 0) + 1;
+          await manager.save(Book, book);
+        }
       }
-    }
 
-    const updatedLoan = await this.findOne(loanId);
+      const updatedLoan = await manager.findOne(Loan, {
+        where: { id: loanId },
+        relations: ['book', 'user', 'fineLogs'],
+      });
 
-    return {
-      success: true,
-      message: 'Book return confirmed as clean',
-      loan: updatedLoan,
-    };
+      return {
+        success: true,
+        message: 'Book return confirmed as clean',
+        loan: updatedLoan || loan,
+      };
+    });
   }
 
   async reportDamageOrLoss(returnData: ReportDamageOrLossDto): Promise<{
@@ -429,39 +435,45 @@ export class LoansService {
       });
     }
 
-    const fineLogs = fineLogsToCreate.length
-      ? await this.fineLogRepository.save(
-        this.fineLogRepository.create(fineLogsToCreate),
-      )
-      : [];
+    return await this.dataSource.transaction(async (manager) => {
+      const fineLogs = fineLogsToCreate.length
+        ? await manager.save(
+            FineLog,
+            manager.create(FineLog, fineLogsToCreate),
+          )
+        : [];
 
-    await this.loanRepository.update(loan.id, {
-      return_date: Date.now(),
-      status: condition,
-      return_condition: condition,
-    });
+      await manager.update(Loan, loan.id, {
+        return_date: Date.now(),
+        status: condition,
+        return_condition: condition,
+      });
 
-    const dbType = process.env.DB_TYPE || 'mssql';
-    if (dbType !== 'mssql' && condition === 'Lost') {
-      const book = await this.bookRepository.findOne({ where: { id: loan.book_id } });
-      if (book) {
-        book.quantity = Math.max(0, Number(book.quantity || 0) - 1);
-        await this.bookRepository.save(book);
+      const dbType = process.env.DB_TYPE || 'mssql';
+      if (dbType !== 'mssql' && condition === 'Lost') {
+        const book = await manager.findOne(Book, { where: { id: loan.book_id } });
+        if (book) {
+          book.quantity = Math.max(0, Number(book.quantity || 0) - 1);
+          await manager.save(Book, book);
+        }
       }
-    }
 
-    const updatedLoan = await this.findOne(loan.id);
-    const totalFine = fineLogs.reduce(
-      (sum, item) => sum + Number(item.fine_amount || 0),
-      0,
-    );
+      const updatedLoan = await manager.findOne(Loan, {
+        where: { id: loan.id },
+        relations: ['book', 'user', 'fineLogs'],
+      });
+      const totalFine = fineLogs.reduce(
+        (sum, item) => sum + Number(item.fine_amount || 0),
+        0,
+      );
 
-    return {
-      loan: updatedLoan,
-      fineLogs,
-      totalFine,
-      message: `Return reported as ${condition}`,
-    };
+      return {
+        loan: updatedLoan || loan,
+        fineLogs,
+        totalFine,
+        message: `Return reported as ${condition}`,
+      };
+    });
   }
 
   async getReaderFines(userId: number): Promise<{
