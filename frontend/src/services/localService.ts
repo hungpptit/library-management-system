@@ -4,6 +4,7 @@
  */
 
 import { Book, UserProfile, Loan } from '../types';
+import { STATIC_BOOKS, STATIC_USERS, STATIC_LOANS } from './staticDbData';
 
 // Local Storage Keys
 export const BOOKS_KEY = 'lms_books';
