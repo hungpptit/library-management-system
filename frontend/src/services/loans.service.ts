@@ -44,10 +44,17 @@ export interface PendingLoanActionResponse {
   loan: ActiveLoan;
 }
 
+import { STATIC_RAW_LOANS } from './staticDbData';
+
 export const loansService = {
   async getAllLoans(): Promise<ActiveLoan[]> {
-    const response = await apiInstance.get('/loans');
-    return response.data;
+    try {
+      const response = await apiInstance.get('/loans');
+      return response.data;
+    } catch (error) {
+      console.warn('Backend unavailable, using static loans database snapshot');
+      return STATIC_RAW_LOANS;
+    }
   },
 
   async borrowBook(userId: number, bookId: number, dueDate: number): Promise<ActiveLoan> {

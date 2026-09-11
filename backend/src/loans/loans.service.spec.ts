@@ -273,7 +273,7 @@ describe('LoansService', () => {
         .mockResolvedValueOnce(earlierLoan); // earliest pending has id 10
 
       await expect(service.approvePendingLoan(15)).rejects.toThrow(
-        'Please process pending requests in FIFO order. Earliest request is loan #10.',
+        'Cuốn sách này đang có bạn đọc đăng ký trước (Phiếu #10)',
       );
     });
 

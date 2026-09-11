@@ -2,11 +2,10 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-
 import React, { useState } from 'react';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
-import { Mail, Lock, User, Hash } from 'lucide-react';
+import { Mail, Lock, User, Hash, GraduationCap, ShieldCheck, ArrowRight } from 'lucide-react';
 
 interface AuthFormProps {
   type: 'login' | 'register';
@@ -104,6 +103,20 @@ export const AuthForm: React.FC<AuthFormProps> = ({
     });
   };
 
+  const handleDemoLogin = (role: 'admin' | 'student', e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    const demoData = role === 'admin'
+      ? { email: 'admin@library.com', password: '123' }
+      : { email: 'phamtuanhung24@gmail.com', password: '123' };
+
+    setFormData((prev) => ({
+      ...prev,
+      ...demoData,
+    }));
+    setErrors({});
+    onSubmit(demoData);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const nextErrors = validate(formData);
@@ -173,6 +186,83 @@ export const AuthForm: React.FC<AuthFormProps> = ({
       <Button type="submit" isLoading={isLoading} className="w-full">
         {type === 'login' ? 'Sign In' : 'Create Account'}
       </Button>
+
+      {type === 'login' && (
+        <div className="flex flex-col gap-2.5 pt-1">
+          <div className="relative flex items-center justify-center">
+            <div className="border-t border-slate-200 w-full" />
+            <span className="bg-white px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              Tài khoản Demo Nhà Tuyển Dụng
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            {/* Demo Admin */}
+            <button
+              type="button"
+              disabled={isLoading}
+              onClick={(e) => handleDemoLogin('admin', e)}
+              className="group relative w-full overflow-hidden rounded-xl border-2 border-sky-400 bg-gradient-to-r from-sky-50 via-sky-100/40 to-indigo-50 p-2.5 text-left shadow-sm transition-all hover:border-sky-500 hover:shadow-md hover:shadow-sky-100 active:scale-[0.99] disabled:opacity-50"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sky-600 text-white shadow-sm group-hover:scale-105 transition-transform">
+                    <ShieldCheck className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-slate-900">
+                        Demo Admin
+                      </span>
+                      <span className="rounded bg-sky-100 px-1.5 py-0.5 text-[9px] font-extrabold text-sky-700 uppercase">
+                        Quản trị viên
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                      admin@library.com
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs font-bold text-sky-600 group-hover:text-sky-700 flex items-center gap-1 group-hover:translate-x-0.5 transition-all">
+                  Đăng nhập <ArrowRight className="w-3.5 h-3.5" />
+                </span>
+              </div>
+            </button>
+
+            {/* Demo Sinh viên */}
+            <button
+              type="button"
+              disabled={isLoading}
+              onClick={(e) => handleDemoLogin('student', e)}
+              className="group relative w-full overflow-hidden rounded-xl border border-emerald-300 bg-gradient-to-r from-emerald-50/70 via-teal-50/40 to-slate-50 p-2.5 text-left shadow-sm transition-all hover:border-emerald-500 hover:shadow-md hover:shadow-emerald-100 active:scale-[0.99] disabled:opacity-50"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-600 text-white shadow-sm group-hover:scale-105 transition-transform">
+                    <GraduationCap className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-slate-900">
+                        Demo Student
+                      </span>
+                      <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-extrabold text-emerald-700 uppercase">
+                        Sinh viên
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                      phamtuanhung24@gmail.com
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs font-bold text-emerald-600 group-hover:text-emerald-700 flex items-center gap-1 group-hover:translate-x-0.5 transition-all">
+                  Đăng nhập <ArrowRight className="w-3.5 h-3.5" />
+                </span>
+              </div>
+            </button>
+          </div>
+        </div>
+      )}
     </form>
   );
 };

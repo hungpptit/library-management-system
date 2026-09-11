@@ -211,7 +211,7 @@ export class LoansService {
 
     if (earliestPendingForBook && earliestPendingForBook.id !== loan.id) {
       throw new BadRequestException(
-        `Please process pending requests in FIFO order. Earliest request is loan #${earliestPendingForBook.id}.`,
+        `Cuốn sách này đang có bạn đọc đăng ký trước (Phiếu #${earliestPendingForBook.id}). Vui lòng duyệt theo thứ tự ai đăng ký trước duyệt trước.`,
       );
     }
 
@@ -225,7 +225,7 @@ export class LoansService {
 
     if (Number(book.available || 0) <= 0) {
       throw new BadRequestException(
-        'Book is not available right now. This request stays pending until stock is available.',
+        'Sách hiện đã hết bản sẵn sàng trên kệ. Yêu cầu này sẽ tiếp tục ở hàng chờ cho đến khi có sách được trả về.',
       );
     }
 

@@ -10,6 +10,8 @@ const apiInstance = axios.create({
 });
 
 
+import { STATIC_BOOKS, STATIC_USERS } from './staticDbData';
+
 export const fetchBooksApi = async (): Promise<Book[]> => {
   try {
     const response = await apiInstance.get('/books');
@@ -18,8 +20,8 @@ export const fetchBooksApi = async (): Promise<Book[]> => {
       price: book.price ? Number(book.price) : 0,
     }));
   } catch (error) {
-    console.error('Error fetching books from API:', error);
-    return [];
+    console.warn('Backend unavailable, using static books database snapshot');
+    return STATIC_BOOKS;
   }
 };
 
@@ -32,8 +34,8 @@ export const fetchBookByIdApi = async (id: string | number): Promise<Book | null
     }
     return book;
   } catch (error) {
-    console.error('Error fetching book by id from API:', error);
-    return null;
+    console.warn('Backend unavailable, finding in static books database snapshot');
+    return STATIC_BOOKS.find((b) => String(b.id) === String(id)) || null;
   }
 };
 
@@ -47,8 +49,15 @@ export const searchBooksApi = async (keyword: string): Promise<Book[]> => {
       price: book.price ? Number(book.price) : 0,
     }));
   } catch (error) {
-    console.error('Error searching books from API:', error);
-    return [];
+    console.warn('Backend unavailable, searching in static books database snapshot');
+    const lower = keyword.toLowerCase();
+    return STATIC_BOOKS.filter(
+      (b) =>
+        b.title.toLowerCase().includes(lower) ||
+        b.author.toLowerCase().includes(lower) ||
+        b.genre.toLowerCase().includes(lower) ||
+        b.isbn.toLowerCase().includes(lower),
+    );
   }
 };
 
@@ -104,8 +113,8 @@ export const fetchUsersApi = async (): Promise<UserProfile[]> => {
       address: user.address,
     }));
   } catch (error) {
-    console.error('Error fetching users from API:', error);
-    return [];
+    console.warn('Backend unavailable, using static users database snapshot');
+    return STATIC_USERS;
   }
 };
 

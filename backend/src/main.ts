@@ -144,8 +144,33 @@ async function ensureLoansSchema(dataSource: DataSource) {
 async function seedDatabase(dataSource: DataSource) {
   try {
     const userRepo = dataSource.getRepository(User);
+    
+    // Seed demo student account if not already present
+    const demoStudentEmail = 'phamtuanhung24@gmail.com';
+    const existingDemoStudent = await userRepo.findOne({ where: { email: demoStudentEmail } });
+    if (!existingDemoStudent) {
+      console.log(`Seeding demo student account (${demoStudentEmail})...`);
+      const hashedPassword = await bcrypt.hash('123', 10);
+      const now = Date.now();
+      const oneYear = 365 * 24 * 60 * 60 * 1000;
+
+      await userRepo.save({
+        email: demoStudentEmail,
+        display_name: 'Phạm Tuấn Hùng',
+        student_id: 'N22DCCN001',
+        role: 'reader',
+        password: hashedPassword,
+        created_at: now,
+        card_expiry: now + oneYear,
+        status: 'active',
+      });
+      console.log('Demo student seeded successfully.');
+    }
+
     const count = await userRepo.count();
-    if (count === 0) {
+    if (count === 1 && !process.env.ADMIN_EMAIL) {
+      // Demo admin was created
+    } else if (count === 0) {
       const adminEmail = process.env.ADMIN_EMAIL;
       const adminPassword = process.env.ADMIN_PASSWORD;
 

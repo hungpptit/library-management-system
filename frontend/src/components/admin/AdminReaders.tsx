@@ -3,12 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { UserProfile } from '../../types';
 import { UserTable } from '../users/UserTable';
 import { SectionHeader } from '../ui/SectionHeader';
 import { Button } from '../ui/Button';
 import { UserPlus } from 'lucide-react';
+import { Pagination } from '../ui/Pagination';
 
 interface AdminReadersProps {
   users: UserProfile[];
@@ -25,6 +26,22 @@ export const AdminReaders: React.FC<AdminReadersProps> = ({
   onDeleteUser,
   currentUserRole = 'admin',
 }) => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
+
+  const totalPages = Math.ceil(users.length / itemsPerPage);
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages, currentPage]);
+
+  const paginatedUsers = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return users.slice(startIndex, startIndex + itemsPerPage);
+  }, [users, currentPage, itemsPerPage]);
+
   // Basic role-based access check
   if (currentUserRole !== 'admin') {
     return (
@@ -46,7 +63,20 @@ export const AdminReaders: React.FC<AdminReadersProps> = ({
           </Button>
         }
       />
-      <UserTable users={users} onEdit={onEditUser} onDelete={onDeleteUser} />
+      <UserTable users={paginatedUsers} onEdit={onEditUser} onDelete={onDeleteUser} />
+
+      {totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+          <p className="text-xs text-slate-500">
+            Hiển thị <span className="font-semibold text-slate-800">{(currentPage - 1) * itemsPerPage + 1}</span> - <span className="font-semibold text-slate-800">{Math.min(currentPage * itemsPerPage, users.length)}</span> trên tổng số <span className="font-semibold text-slate-800">{users.length}</span> độc giả
+          </p>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        </div>
+      )}
     </div>
   );
 };

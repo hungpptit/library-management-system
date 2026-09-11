@@ -4,12 +4,17 @@ import { useAuth } from './AuthContext';
 import { 
   subscribeToUserLoans, 
   subscribeToAllLoans, 
-  subscribeToAllUsers,
-  returnBook,
-  deleteUser,
-  registerUser,
-  addNewUser,
-  updateUser as updateUserService
+  subscribeToAllUsers, 
+  returnBook, 
+  deleteUser, 
+  registerUser, 
+  addNewUser, 
+  updateUser as updateUserService,
+  getLocalData,
+  BOOKS_KEY,
+  USERS_KEY,
+  INITIAL_BOOKS,
+  INITIAL_USERS,
 } from '../services/localService';
 import { 
   fetchBooksApi, 
@@ -60,7 +65,10 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   const fetchInitialBooks = useCallback(async () => {
     setIsLoading(true);
     try {
-      const booksData = await fetchBooksApi();
+      let booksData = await fetchBooksApi();
+      if (!booksData || booksData.length === 0) {
+        booksData = getLocalData<Book[]>(BOOKS_KEY, INITIAL_BOOKS);
+      }
 
       const normalizedBooks = booksData.map((book) => {
         const quantity = Number(book.quantity || 0);
@@ -95,6 +103,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error('Failed to fetch books:', error);
+      setBooks(getLocalData<Book[]>(BOOKS_KEY, INITIAL_BOOKS));
     } finally {
       setIsLoading(false);
     }
@@ -104,10 +113,14 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   const fetchInitialUsers = useCallback(async () => {
     setIsLoading(true);
     try {
-      const usersData = await fetchUsersApi();
+      let usersData = await fetchUsersApi();
+      if (!usersData || usersData.length === 0) {
+        usersData = getLocalData<UserProfile[]>(USERS_KEY, INITIAL_USERS);
+      }
       setUsers(usersData);
     } catch (error) {
       console.error('Failed to fetch users:', error);
+      setUsers(getLocalData<UserProfile[]>(USERS_KEY, INITIAL_USERS));
     } finally {
       setIsLoading(false);
     }

@@ -11,6 +11,7 @@ import { Button } from '../ui/Button';
 import { RefreshCw, Scan } from 'lucide-react';
 import { loansService, ActiveLoan } from '../../services/loans.service';
 import { toast } from 'react-hot-toast';
+import { Pagination } from '../ui/Pagination';
 
 interface AdminLoansProps {
   loans: Loan[];
@@ -64,24 +65,39 @@ export const AdminLoans: React.FC<AdminLoansProps> = ({
   const approvePendingLoan = async (loan: Loan) => {
     try {
       await loansService.approvePendingLoan(Number(loan.id));
-      toast.success(`Loan #${loan.id} approved`);
+      toast.success(`Đã duyệt phiếu mượn #${loan.id} thành công!`);
       window.dispatchEvent(new CustomEvent('loans:updated'));
       await refreshLoans();
     } catch (error: any) {
       console.error(error);
-      toast.error(error?.response?.data?.message || 'Failed to approve loan');
+      const rawMsg = error?.response?.data?.message || '';
+      let friendlyMsg = rawMsg;
+      if (typeof rawMsg === 'string') {
+        if (rawMsg.includes('FIFO') || rawMsg.includes('Earliest request is loan') || rawMsg.includes('đăng ký trước')) {
+          const match = rawMsg.match(/#(\d+)/);
+          const earliestId = match ? match[1] : '';
+          friendlyMsg = `Cuốn sách này đang có bạn đọc đăng ký trước (Phiếu #${earliestId}). Vui lòng duyệt phiếu #${earliestId} trước để đảm bảo công bằng!`;
+        } else if (rawMsg.includes('out of stock') || rawMsg.includes('not available') || rawMsg.includes('hết bản')) {
+          friendlyMsg = 'Sách này hiện đã hết bản sẵn sàng trên kệ. Yêu cầu sẽ tiếp tục chờ khi có sách được trả về.';
+        } else if (rawMsg.includes('overdue') || rawMsg.includes('quá hạn')) {
+          friendlyMsg = 'Độc giả đang có sách mượn quá hạn chưa trả.';
+        } else if (rawMsg.includes('giới hạn') || rawMsg.includes('limit')) {
+          friendlyMsg = 'Độc giả đã đạt tối đa 5 cuốn sách đang xử lý/mượn.';
+        }
+      }
+      toast.error(friendlyMsg || 'Không thể duyệt phiếu mượn này');
     }
   };
 
   const rejectPendingLoan = async (loan: Loan) => {
     try {
       await loansService.rejectPendingLoan(Number(loan.id));
-      toast.success(`Loan #${loan.id} rejected`);
+      toast.success(`Đã từ chối phiếu mượn #${loan.id}`);
       window.dispatchEvent(new CustomEvent('loans:updated'));
       await refreshLoans();
     } catch (error: any) {
       console.error(error);
-      toast.error(error?.response?.data?.message || 'Failed to reject loan');
+      toast.error(error?.response?.data?.message || 'Không thể từ chối phiếu mượn này');
     }
   };
 
@@ -126,6 +142,9 @@ export const AdminLoans: React.FC<AdminLoansProps> = ({
     [sourceLoans],
   );
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
   const visibleLoans = useMemo(() => {
     if (activeView === 'pending') return pendingLoans;
     if (activeView === 'queue') return queueLoans;
@@ -134,6 +153,24 @@ export const AdminLoans: React.FC<AdminLoansProps> = ({
     if (activeView === 'lost') return lostLoans;
     return sourceLoans;
   }, [activeView, sourceLoans, pendingLoans, queueLoans, returnedLoans, damagedLoans, lostLoans]);
+
+  const totalPages = Math.ceil(visibleLoans.length / itemsPerPage);
+
+  const handleTabChange = (view: typeof activeView) => {
+    setActiveView(view);
+    setCurrentPage(1);
+  };
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages, currentPage]);
+
+  const paginatedLoans = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return visibleLoans.slice(startIndex, startIndex + itemsPerPage);
+  }, [visibleLoans, currentPage, itemsPerPage]);
 
   return (
     <div className="flex flex-col gap-8">
@@ -157,50 +194,63 @@ export const AdminLoans: React.FC<AdminLoansProps> = ({
       <div className="flex flex-wrap gap-2">
         <Button
           variant={activeView === 'pending' ? 'primary' : 'secondary'}
-          onClick={() => setActiveView('pending')}
+          onClick={() => handleTabChange('pending')}
         >
           Pending Requests ({pendingLoans.length})
         </Button>
         <Button
           variant={activeView === 'queue' ? 'primary' : 'secondary'}
-          onClick={() => setActiveView('queue')}
+          onClick={() => handleTabChange('queue')}
         >
           Return Queue ({queueLoans.length})
         </Button>
         <Button
           variant={activeView === 'returned' ? 'primary' : 'secondary'}
-          onClick={() => setActiveView('returned')}
+          onClick={() => handleTabChange('returned')}
         >
           Returned ({returnedLoans.length})
         </Button>
         <Button
           variant={activeView === 'damaged' ? 'primary' : 'secondary'}
-          onClick={() => setActiveView('damaged')}
+          onClick={() => handleTabChange('damaged')}
         >
           Damaged ({damagedLoans.length})
         </Button>
         <Button
           variant={activeView === 'lost' ? 'primary' : 'secondary'}
-          onClick={() => setActiveView('lost')}
+          onClick={() => handleTabChange('lost')}
         >
           Lost ({lostLoans.length})
         </Button>
         <Button
           variant={activeView === 'all' ? 'primary' : 'secondary'}
-          onClick={() => setActiveView('all')}
+          onClick={() => handleTabChange('all')}
         >
           All ({sourceLoans.length})
         </Button>
       </div>
 
       <LoanTable
-        loans={visibleLoans}
+        loans={paginatedLoans}
         onReturn={onReturn}
         onApprove={approvePendingLoan}
         onReject={rejectPendingLoan}
         isAdmin
         showActionColumn={activeView === 'pending'}
       />
+
+      {totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+          <p className="text-xs text-slate-500">
+            Hiển thị <span className="font-semibold text-slate-800">{(currentPage - 1) * itemsPerPage + 1}</span> - <span className="font-semibold text-slate-800">{Math.min(currentPage * itemsPerPage, visibleLoans.length)}</span> trên tổng số <span className="font-semibold text-slate-800">{visibleLoans.length}</span> phiếu mượn
+          </p>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        </div>
+      )}
     </div>
   );
 };
