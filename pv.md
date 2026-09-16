@@ -7,16 +7,108 @@
 ---
 
 ## MỤC LỤC
-1. [Giao dịch ACID & Quản lý Kho - Phí phạt (TypeORM Transaction)](#1-giao-dịch-acid--quản-lý-kho---phí-phạt)
-2. [Cơ chế Hàng đợi FIFO & Xử lý duyệt mượn tự động](#2-cơ-chế-hàng-đợi-fifo--xử-lý-duyệt-mượn-tự-động)
-3. [Kỹ thuật "Guarded Soft Delete" & Ràng buộc toàn vẹn](#3-kỹ-thuật-guarded-soft-delete--ràng-buộc-toàn-vẹn)
-4. [Kiến trúc Phân quyền RBAC & Request Lifecycle trong NestJS](#4-kiến-trúc-phân-quyền-rbac--request-lifecycle-trong-nestjs)
-5. [Chiến lược Kiểm thử tự động Jest (95/95 Tests Pass)](#5-chiến-lược-kiểm-thử-tự-động-jest-9595-tests-pass)
-6. [Các kịch bản System Design & Concurrency Nâng cao (Senior Round)](#6-các-kịch-bản-system-design--concurrency-nâng-cao)
+1. [Giới thiệu Tổng quan Dự án (Project Overview & Elevator Pitch)](#1-giới-thiệu-tổng-quan-dự-án-project-overview--elevator-pitch)
+2. [Lựa chọn Công nghệ, Ngôn ngữ & So sánh Đối chiếu](#2-lựa-chọn-công-nghệ-ngôn-ngữ--so-sánh-đối-chiếu)
+3. [Giao dịch ACID & Quản lý Kho - Phí phạt (TypeORM Transaction)](#3-giao-dịch-acid--quản-lý-kho---phí-phạt)
+4. [Cơ chế Hàng đợi FIFO & Xử lý duyệt mượn tự động](#4-cơ-chế-hàng-đợi-fifo--xử-lý-duyệt-mượn-tự-động)
+5. [Kỹ thuật "Guarded Soft Delete" & Ràng buộc toàn vẹn](#5-kỹ-thuật-guarded-soft-delete--ràng-buộc-toàn-vẹn)
+6. [Kiến trúc Phân quyền RBAC & Request Lifecycle trong NestJS](#6-kiến-trúc-phân-quyền-rbac--request-lifecycle-trong-nestjs)
+7. [Chiến lược Kiểm thử tự động Jest (95/95 Tests Pass)](#7-chiến-lược-kiểm-thử-tự-động-jest-9595-tests-pass)
+8. [Các kịch bản System Design & Concurrency Nâng cao (Senior Round)](#8-các-kịch-bản-system-design--concurrency-nâng-cao)
 
 ---
 
-## 1. GIAO DỊCH ACID & QUẢN LÝ KHO - PHÍ PHẠT
+## 1. GIỚI THIỆU TỔNG QUAN DỰ ÁN (PROJECT OVERVIEW & ELEVATOR PITCH)
+
+### 📌 1.1 Tóm tắt Dự án & Bài toán Nghiệp vụ
+* **Tên dự án:** Hệ Thống Quản Lý Thư Viện Thông Minh (Smart Library Management System - LMS).
+* **Bối cảnh & Vấn đề giải quyết:**
+  * Các thư viện truyền thống hoặc hệ thống CRUD đơn giản thường gặp rủi ro nghiêm trọng về **lệch dữ liệu kho sách** và **thất thoát tài sản**:
+    * Khi độc giả trả sách hỏng hoặc mất sách, quá trình tính phí phạt và trừ kho diễn ra rời rạc, nếu server gặp sự cố giữa chừng thì dữ liệu sách và tiền phạt bị sai lệch.
+    * Tình trạng "tranh chấp mượn sách" khi sách sắp hết (nhiều người cùng đặt mượn bản sao cuối cùng).
+    * Sách hoặc tài khoản độc giả bị xóa tùy tiện dù vẫn đang mượn sách chưa trả.
+* **Giải pháp của dự án:**
+  * Xây dựng Backend chuẩn kiến trúc doanh nghiệp với **NestJS & TypeScript**, áp dụng **ACID Transactions** đảm bảo tính nguyên tử tuyệt đối cho chu trình mượn/trả/phạt kho.
+  * Tự động hóa xếp hàng mượn sách theo thứ tự ưu tiên **FIFO (First In First Out)**.
+  * Kiểm soát toàn vẹn dữ liệu bằng kỹ thuật **Guarded Soft Delete** và phân quyền đa tầng **RBAC** (Admin, Librarian, Reader).
+  * Kiểm thử tự động toàn diện với **95/95 ca test đạt 100% Pass** bằng Jest.
+
+---
+
+### 🎙️ 1.2 Mẫu kịch bản 90 giây trả lời câu hỏi: *"Em hãy giới thiệu tổng quan về dự án và vai trò của em?"*
+> *"Chào anh/chị, dự án Smart Library là hệ thống quản lý thư viện số hóa toàn diện mà em đảm nhiệm vai trò Backend Developer chính.*
+>
+> *Hệ thống phục vụ 3 nhóm đối tượng: Độc giả (Reader), Thủ thư (Librarian) và Quản trị viên (Admin). Điểm cốt lõi mà em tập trung giải quyết trong dự án này không dừng lại ở các thao tác CRUD thông thường, mà là **tính toàn vẹn dữ liệu tài sản thư viện và quản trị rủi ro concurrency**:*
+> 1. *Em thiết kế chu trình hoàn trả sách và bồi thường hỏng/mất thành một **ACID Transaction** nguyên tử, liên kết đồng bộ giữa tính phạt (FineLog), trạng thái phiếu mượn (Loan) và điều chỉnh số lượng kho (Book).*
+> 2. *Triển khai cơ chế hàng đợi **FIFO** để duyệt yêu cầu mượn công bằng theo thời gian đăng ký khi sách khan hiếm.*
+> 3. *Áp dụng kỹ thuật **Guarded Soft Delete** nhằm bảo vệ dữ liệu lịch sử và chặn xóa tài nguyên khi đang có ràng buộc mượn dở dang.*
+> 4. *Để đảm bảo hệ thống production-ready, em đã tự tay xây dựng bộ test tự động với **95 test cases đạt 100% PASS** trên Jest, bao phủ toàn bộ các edge case nghiệp vụ như quá hạn, thẻ hết hạn, vượt giới hạn mượn và rollback giao dịch.*
+>
+> *Dự án giúp em làm chủ kiến trúc NestJS chuyên sâu, quản lý Concurrency trên RDBMS và tư duy viết mã chuẩn kiểm thử."*
+
+---
+
+## 2. LỰA CHỌN CÔNG NGHỆ, NGÔN NGỮ & SO SÁNH ĐỐI CHIẾU
+
+### 📌 2.1 Ngôn ngữ: TypeScript
+* **Tại sao lựa chọn TypeScript?**
+  * **Static Typing & Compile-time Safety:** Phát hiện lỗi kiểu dữ liệu ngay khi code thay vì để lỗi phát sinh ở Runtime trên Production (đặc biệt quan trọng khi tính toán tiền phạt `fine_amount`, trạng thái enum `LoanStatus`, ngày tháng timestamp).
+  * **Hỗ trợ Decorators & Metadata Reflection:** Tương thích tự nhiên với cơ chế Dependency Injection, Guard, Interceptor và Class-Validator của NestJS.
+  * **Khả năng Refactor & Maintain:** Dự án thư viện có quan hệ thực thể phức tạp (Book, User, Loan, FineLog). TypeScript giúp định nghĩa Interface/DTO rõ ràng, tự động gợi ý code và refactor cực kỳ an toàn khi logic thay đổi.
+* **So sánh TypeScript với các lựa chọn khác:**
+
+| Tiêu chí | TypeScript | JavaScript (Node.js thuần) | Python (FastAPI/Django) | Go (Golang) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Kiểm soát kiểu dữ liệu** | Static Typing mạnh mẽ, interface phong phú. | Dynamic typing, dễ gặp lỗi runtime `undefined is not a function`. | Type hints (FastAPI pydantic), nhưng vẫn là dynamic lúc runtime. | Static Typing cực kỳ chặt chẽ, biên dịch trực tiếp ra mã máy. |
+| **Tốc độ phát triển (Time-to-Market)** | Rất nhanh, hỗ trợ IntelliSense, autocomplete thông minh. | Nhanh ban đầu, nhưng ác mộng khi hệ thống lớn dần và refactor. | Rất nhanh, cú pháp ngắn gọn, thích hợp cho AI/Data và CRUD nhanh. | Chậm hơn đôi chút do cú pháp tường minh, ít abstraction có sẵn. |
+| **Performance & Concurrency** | Non-blocking I/O (Event Loop), xử lý hàng ngàn I/O requests tốt. | Tương đương TypeScript. | Thấp hơn Node.js trong xử lý I/O đồng thời (dù FastAPI dùng async/await). | **Vô địch về concurrency** nhờ Goroutines & Channels siêu nhẹ. |
+| **Lý do không chọn ngôn ngữ khác cho dự án này:** | Được chọn vì cân bằng hoàn hảo giữa hiệu năng I/O của Node.js và tính chặt chẽ hướng đối tượng của hệ sinh thái doanh nghiệp. | JS thuần thiếu an toàn kiểu dữ liệu, khó kiểm soát nghiệp vụ tài chính/kho. | Python không có hệ sinh thái Dependency Injection & Modular mạnh mẽ như NestJS. | Go phù hợp Microservices hạ tầng thấp, nhưng tốn nhiều boilerplate code cho nghiệp vụ quản lý quan hệ phong phú như thư viện. |
+
+---
+
+### 📌 2.2 Framework: NestJS
+* **Tại sao lựa chọn NestJS?**
+  * **Kiến trúc Modular & Dependency Injection (DI):** Tổ chức mã nguồn theo module rõ ràng (`BooksModule`, `LoansModule`, `UsersModule`), giảm thiểu phụ thuộc lỏng lẻo (loose coupling) và giúp việc Unit Test trở nên dễ dàng nhờ mock DI.
+  * **Triết lý Opinionated (Chuẩn hóa quy chuẩn):** Cung cấp sẵn các chuẩn mực kiến trúc doanh nghiệp: Guards (bảo mật), Interceptors (ghi log/biến đổi response), Pipes (validate dữ liệu), Filters (bắt lỗi tập trung).
+  * **Request Lifecycle chặt chẽ:** Cho phép chặn đứng dữ liệu sai ngay từ vòng gửi xe bằng `ValidationPipe` kết hợp DTOs.
+* **So sánh NestJS với các Framework khác:**
+
+| Tiêu chí | NestJS | Express.js (thuần) | Spring Boot (Java) |
+| :--- | :--- | :--- | :--- |
+| **Cấu trúc kiến trúc** | **Opinionated:** Cấu trúc module, controller, service chuẩn mực như Angular/Spring. | **Unopinionated:** Tự do hoàn toàn, không có cấu trúc bắt buộc. | **Opinionated:** Chuẩn mực doanh nghiệp lâu đời, kiến trúc phân lớp kinh điển. |
+| **Khả năng mở rộng dự án lớn (Scalability)** | **Rất cao:** Team đông người vào làm vẫn theo chung một quy chuẩn, code không bị phân mảnh. | **Kém:** Mỗi lập trình viên viết một kiểu, dự án lớn dễ thành "Spaghetti code". | **Rất cao:** Là tượng đài trong các hệ thống Banking và Enterprise lớn. |
+| **Tiêu tốn tài nguyên & Khởi động** | Nhẹ nhàng, khởi động vài giây, tốn ít RAM (vài chục đến ~100MB). | Rất nhẹ, khởi động tức thì. | **Nặng nề:** Cần JVM, tốn hàng trăm MB đến cả GB RAM, khởi động lâu. |
+| **Testing Support** | Tích hợp sẵn Jest, hỗ trợ `@nestjs/testing` tạo module test giả lập cực kỳ tiện. | Phải tự cấu hình Jest/Mocha từ đầu, mock thủ công rất vất vả. | Tích hợp sẵn JUnit, Mockito rất mạnh mẽ. |
+| **Tại sao chọn NestJS thay vì Express/Spring Boot?** | Đạt được tính chuẩn hóa của Spring Boot nhưng vẫn giữ được sự linh hoạt, nhẹ nhàng và cộng đồng npm khổng lồ của Node.js. | Express quá tự do, dễ sinh code ẩu khi nghiệp vụ phức tạp. | Spring Boot quá cồng kềnh cho bài toán thư viện này, tốn tài nguyên phần cứng không cần thiết. |
+
+---
+
+### 📌 2.3 ORM: TypeORM
+* **Tại sao lựa chọn TypeORM?**
+  * **Hỗ trợ cả Data Mapper và Active Record:** Linh hoạt trong việc thiết kế Entity và Repository.
+  * **Hỗ trợ Transaction & QueryRunner trực tiếp:** Dễ dàng kiểm soát isolation level, transaction rollback khi thực hiện các nghiệp vụ nhạy cảm giữa nhiều bảng.
+  * **Đa cơ sở dữ liệu (Database Agnostic):** Codebase của dự án có thể chạy mượt mà trên cả MS SQL Server lẫn PostgreSQL mà không cần viết lại câu lệnh SQL nghiệp vụ.
+* **So sánh TypeORM vs Prisma vs Raw SQL:**
+
+| Tiêu chí | TypeORM | Prisma | Raw SQL (knex / pg) |
+| :--- | :--- | :--- | :--- |
+| **Mô hình tiếp cận** | **Code-First:** Định nghĩa Entity bằng TypeScript class & decorators. | **Schema-First:** Viết file `schema.prisma`, sinh client tự động. | Không có mô hình, tự viết chuỗi SQL query. |
+| **Kiểm soát Transaction phức tạp** | **Rất tốt:** Cho phép dùng `QueryRunner`, `manager.transaction`, rollback tường minh. | Hỗ trợ Interactive Transaction tốt, nhưng query builder hạn chế hơn khi cần câu lệnh SQL đặc thù. | Tuyệt đối kiểm soát từng lệnh `BEGIN`, `COMMIT`, `ROLLBACK`. |
+| **Tương thích MS SQL Server / Enterprise DB** | Hỗ trợ lâu đời và hoàn thiện tốt với MS SQL Server. | Hỗ trợ SQL Server nhưng một số tính năng enterprise bị giới hạn. | Tùy thuộc vào driver lập trình viên dùng. |
+| **Lý do chọn TypeORM:** | Dễ dàng tích hợp với kiến trúc Decorator của NestJS (`@InjectRepository`), hỗ trợ tốt Database Transaction cho bài toán trừ kho & tính phạt. | Prisma rất tốt nhưng TypeORM phù hợp hơn với tư duy OOP của NestJS và hỗ trợ tốt DB MS SQL Server trong dự án. | Raw SQL khó bảo trì, không tự động map object và tốn thời gian migration. |
+
+---
+
+### 📌 2.4 Cơ sở dữ liệu: Relational DB (SQL Server / PostgreSQL) vs NoSQL (MongoDB)
+* **Tại sao nghiệp vụ Thư viện BẮT BUỘC phải dùng Relational Database (RDBMS)?**
+  * **Ràng buộc khóa ngoại (Foreign Keys & Referential Integrity):** Phiếu mượn `Loan` phải trỏ đúng `reader_id` (User) và `book_id` (Book). Nếu User hoặc Book không tồn tại, DB phải tự động chặn.
+  * **Nguyên lý ACID toàn vẹn:** Nghiệp vụ mượn sách liên quan trực tiếp đến số lượng kho (`available`) và tiền phạt (`fine_amount`). Không thể chấp nhận hiện tượng "nhất quán cuối cùng" (Eventual Consistency) của NoSQL.
+  * **Tại sao không dùng MongoDB (NoSQL)?**
+    * MongoDB thiết kế cho dữ liệu dạng tài liệu độc lập, phân tán cao. Khi cần join nhiều bảng (`User` -> `Loan` -> `Book` -> `FineLog`) và đảm bảo trừ kho không bị âm, MongoDB xử lý multi-document transaction chậm và phức tạp hơn rất nhiều so với RDBMS.
+
+---
+
+## 3. GIAO DỊCH ACID & QUẢN LÝ KHO - PHÍ PHẠT
 
 ### 📌 Trọng tâm trong Codebase:
 - File triển khai: `backend/src/loans/loans.service.ts` (các phương thức `confirmReturnClean` và `reportDamageOrLoss`).
@@ -57,7 +149,7 @@
 
 ---
 
-## 2. CƠ CHẾ HÀNG ĐỢI FIFO & XỬ LÝ DUYỆT MƯỢN TỰ ĐỘNG
+## 4. CƠ CHẾ HÀNG ĐỢI FIFO & XỬ LÝ DUYỆT MƯỢN TỰ ĐỘNG
 
 ### 📌 Trọng tâm trong Codebase:
 - File triển khai: `backend/src/loans/loans.service.ts` (`approvePendingLoan`).
@@ -87,7 +179,7 @@
 
 ---
 
-## 3. KỸ THUẬT "GUARDED SOFT DELETE" & RÀNG BUỘC TOÀN VẸN
+## 5. KỸ THUẬT "GUARDED SOFT DELETE" & RÀNG BUỘC TOÀN VẸN
 
 ### 📌 Trọng tâm trong Codebase:
 - File triển khai: `backend/src/books/books.service.ts` (`remove`), `backend/src/users/users.service.ts` (`removeUser`).
@@ -118,7 +210,7 @@
 
 ---
 
-## 4. KIẾN TRÚC PHÂN QUYỀN RBAC & REQUEST LIFECYCLE TRONG NESTJS
+## 6. KIẾN TRÚC PHÂN QUYỀN RBAC & REQUEST LIFECYCLE TRONG NESTJS
 
 ### 📌 Trọng tâm trong Codebase:
 - File triển khai:
@@ -150,7 +242,7 @@
 
 ---
 
-## 5. CHIẾN LƯỢC KIỂM THỬ TỰ ĐỘNG JEST (95/95 TESTS PASS)
+## 7. CHIẾN LƯỢC KIỂM THỬ TỰ ĐỘNG JEST (95/95 TESTS PASS)
 
 ### 📌 Trọng tâm trong Codebase:
 - File triển khai: `loans.service.spec.ts`, `books.service.spec.ts`, `users.service.spec.ts`, `auth.guard.spec.ts`, `roles.guard.spec.ts`.
@@ -187,7 +279,7 @@
 
 ---
 
-## 6. CÁC KỊCH BẢN SYSTEM DESIGN & CONCURRENCY NÂNG CAO
+## 8. CÁC KỊCH BẢN SYSTEM DESIGN & CONCURRENCY NÂNG CAO
 
 | Tình huống phỏng vấn | Phân tích vấn đề | Hướng giải quyết đề xuất (Senior Answer) |
 | :--- | :--- | :--- |
